@@ -274,17 +274,6 @@ static INPUT_PORTS_START( sprcros2 )
 	PORT_DIPSETTING(    0x80, DEF_STR( On ) )
 INPUT_PORTS_END
 
-static const gfx_layout bg_layout =
-{
-	8,8,
-	RGN_FRAC(1,3),
-	3,
-	{ RGN_FRAC(0,3), RGN_FRAC(1,3), RGN_FRAC(2,3) },
-	{ STEP8(0,1) },
-	{ STEP8(0,8) },
-	8*8
-};
-
 static const gfx_layout sprite_layout =
 {
 	32,32,
@@ -308,7 +297,7 @@ static const gfx_layout fg_layout =
 };
 
 static GFXDECODE_START( sprcros2 )
-	GFXDECODE_ENTRY( "gfx1", 0, bg_layout,     0,   16 )
+	GFXDECODE_ENTRY( "gfx1", 0, gfx_8x8x3_planar, 0,   16 )
 	GFXDECODE_ENTRY( "gfx2", 0, sprite_layout, 256, 32 )
 	GFXDECODE_ENTRY( "gfx3", 0, fg_layout,     512, 64 )
 GFXDECODE_END
@@ -471,9 +460,9 @@ ROM_START( sprcros2 )
 	ROM_LOAD( "scs-27.5k",  0x00000, 0x4000, CRC(2cf720cb) SHA1(a95c5b8c88371cf597bb7d80afeca6a48c7b74e6) )
 
 	ROM_REGION( 0xc000, "gfx1", 0 ) //bg
-	ROM_LOAD( "scs-26.4b",   0x0000, 0x4000, CRC(f958b56d) SHA1(a1973179d336d2ba57294155550515f2b8a33a09) )
+	ROM_LOAD( "scs-26.4b",   0x8000, 0x4000, CRC(f958b56d) SHA1(a1973179d336d2ba57294155550515f2b8a33a09) )
 	ROM_LOAD( "scs-25.4c",   0x4000, 0x4000, CRC(d6fd7ba5) SHA1(1c26c4c1655b2be9cb6103e75386cc2f0cf27fc5) )
-	ROM_LOAD( "scs-24.4e",   0x8000, 0x4000, CRC(87783c36) SHA1(7102be795afcddd76b4d41823e95c65fe1ffbca0) )
+	ROM_LOAD( "scs-24.4e",   0x0000, 0x4000, CRC(87783c36) SHA1(7102be795afcddd76b4d41823e95c65fe1ffbca0) )
 
 	ROM_REGION( 0xc000, "gfx2", 0 )
 	ROM_LOAD( "scm-23.5b",   0x0000, 0x4000, CRC(ab42f8e3) SHA1(8c2213b7c47a48e223fc3f7d323d16c0e4cd0457) ) //sprites
@@ -509,9 +498,9 @@ ROM_START( sprcros2a )
 	ROM_LOAD( "scs-27.5k",  0x00000, 0x4000, CRC(2cf720cb) SHA1(a95c5b8c88371cf597bb7d80afeca6a48c7b74e6) ) //banked into c000-dfff
 
 	ROM_REGION( 0xc000, "gfx1", 0 ) //bg
-	ROM_LOAD( "scs-26.4b",   0x0000, 0x4000, CRC(f958b56d) SHA1(a1973179d336d2ba57294155550515f2b8a33a09) )
+	ROM_LOAD( "scs-26.4b",   0x8000, 0x4000, CRC(f958b56d) SHA1(a1973179d336d2ba57294155550515f2b8a33a09) )
 	ROM_LOAD( "scs-25.4c",   0x4000, 0x4000, CRC(d6fd7ba5) SHA1(1c26c4c1655b2be9cb6103e75386cc2f0cf27fc5) )
-	ROM_LOAD( "scs-24.4e",   0x8000, 0x4000, CRC(87783c36) SHA1(7102be795afcddd76b4d41823e95c65fe1ffbca0) )
+	ROM_LOAD( "scs-24.4e",   0x0000, 0x4000, CRC(87783c36) SHA1(7102be795afcddd76b4d41823e95c65fe1ffbca0) )
 
 	ROM_REGION( 0xc000, "gfx2", 0 )
 	ROM_LOAD( "scm-23.5b",   0x0000, 0x4000, CRC(ab42f8e3) SHA1(8c2213b7c47a48e223fc3f7d323d16c0e4cd0457) ) //sprites
