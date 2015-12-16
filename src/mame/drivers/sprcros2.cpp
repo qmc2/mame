@@ -84,11 +84,14 @@ public:
 	DECLARE_PALETTE_INIT(sprcros2);
 	DECLARE_WRITE8_MEMBER(master_output_w);
 	DECLARE_WRITE8_MEMBER(slave_output_w);
+	DECLARE_WRITE8_MEMBER(bg_scrollx_w);
+	DECLARE_WRITE8_MEMBER(bg_scrolly_w);
 	INTERRUPT_GEN_MEMBER(master_vblank_irq);
 	INTERRUPT_GEN_MEMBER(slave_vblank_irq);
 	
 	bool m_master_nmi_enable;
 	bool m_slave_nmi_enable;
+	UINT8 m_bg_scrollx, m_bg_scrolly;
 protected:
 	// driver_device overrides
 	virtual void machine_start();
@@ -119,7 +122,10 @@ UINT32 sprcros2_state::screen_update( screen_device &screen, bitmap_ind16 &bitma
 			bool flipx = bool(m_bgattr[count] & 0x08);
 			UINT8 color = 0;
 			
-			gfx->opaque(bitmap,cliprect,tile,color,flipx,0,x*8,y*8);
+			gfx->opaque(bitmap,cliprect,tile,color,flipx,0,x*8-m_bg_scrollx,y*8-m_bg_scrolly);
+			gfx->opaque(bitmap,cliprect,tile,color,flipx,0,x*8+256-m_bg_scrollx,y*8-m_bg_scrolly);
+			gfx->opaque(bitmap,cliprect,tile,color,flipx,0,x*8-m_bg_scrollx,y*8+256-m_bg_scrolly);
+			gfx->opaque(bitmap,cliprect,tile,color,flipx,0,x*8+256-m_bg_scrollx,y*8+256-m_bg_scrolly);
 
 			count++;
 		}
@@ -166,6 +172,16 @@ WRITE8_MEMBER(sprcros2_state::slave_output_w)
 	membank("slave_rombank")->set_entry((data&8)>>3);
 }
 
+WRITE8_MEMBER(sprcros2_state::bg_scrollx_w)
+{
+	m_bg_scrollx = data;
+}
+
+WRITE8_MEMBER(sprcros2_state::bg_scrolly_w)
+{
+	m_bg_scrolly = data;
+}
+
 static ADDRESS_MAP_START( master_map, AS_PROGRAM, 8, sprcros2_state )
 	AM_RANGE(0x0000, 0xbfff) AM_ROM AM_REGION("master", 0)
 	AM_RANGE(0xc000, 0xdfff) AM_ROMBANK("master_rombank")
@@ -196,6 +212,8 @@ ADDRESS_MAP_END
 
 static ADDRESS_MAP_START( slave_io, AS_IO, 8, sprcros2_state )
 	ADDRESS_MAP_GLOBAL_MASK(0xff)
+	AM_RANGE(0x00, 0x00) AM_WRITE(bg_scrollx_w)
+	AM_RANGE(0x01, 0x01) AM_WRITE(bg_scrolly_w)
 	AM_RANGE(0x03, 0x03) AM_WRITE(slave_output_w)
 ADDRESS_MAP_END
 
