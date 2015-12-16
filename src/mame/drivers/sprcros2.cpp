@@ -142,7 +142,7 @@ UINT32 sprcros2_state::screen_update( screen_device &screen, bitmap_ind16 &bitma
 		{
 			UINT16 tile = m_fgvram[count];
 			tile |= (m_fgattr[count] & 3) << 8;
-			UINT8 color = (m_fgattr[count] & 0xfc) >> 3;
+			UINT8 color = (m_fgattr[count] & 0xfc) >> 2;
 			
 			gfx_1->transpen(bitmap,cliprect,tile,color,0,0,x*8,y*8,0);
 
@@ -419,7 +419,11 @@ static MACHINE_CONFIG_START( sprcros2, sprcros2_state )
 	/* video hardware */
 	MCFG_SCREEN_ADD("screen", RASTER)
 	MCFG_SCREEN_UPDATE_DRIVER(sprcros2_state, screen_update)
-	MCFG_SCREEN_RAW_PARAMS(MAIN_CLOCK/2, 343, 0, 256, 262, 0, 256) // TODO: Wrong screen parameters
+	MCFG_SCREEN_REFRESH_RATE(60)
+	MCFG_SCREEN_VBLANK_TIME(ATTOSECONDS_IN_USEC(0))
+	MCFG_SCREEN_SIZE(32*8, 32*8)
+	MCFG_SCREEN_VISIBLE_AREA(1*8, 31*8-1, 2*8, 30*8-1)
+//	MCFG_SCREEN_RAW_PARAMS(MAIN_CLOCK/2, 343, 0, 256, 262, 0, 256) // TODO: Wrong screen parameters
 	MCFG_SCREEN_PALETTE("palette")
 
 	MCFG_GFXDECODE_ADD("gfxdecode", "palette", sprcros2)
