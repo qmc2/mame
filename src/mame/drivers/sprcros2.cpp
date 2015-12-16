@@ -88,8 +88,10 @@ public:
 	DECLARE_WRITE8_MEMBER(bg_scrolly_w);
 	INTERRUPT_GEN_MEMBER(master_vblank_irq);
 	INTERRUPT_GEN_MEMBER(slave_vblank_irq);
-	
+	TIMER_DEVICE_CALLBACK_MEMBER(master_scanline);
+
 	bool m_master_nmi_enable;
+	bool m_master_irq_enable;
 	bool m_slave_nmi_enable;
 	UINT8 m_bg_scrollx, m_bg_scrolly;
 protected:
@@ -109,7 +111,7 @@ void sprcros2_state::video_start()
 UINT32 sprcros2_state::screen_update( screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect )
 {
 	gfx_element *gfx = m_gfxdecode->gfx(0);
-	//gfx_element *gfx_1 = m_gfxdecode->gfx(1);
+	gfx_element *gfx_1 = m_gfxdecode->gfx(2);
 	int y,x;
 	int count = 0;
 
@@ -120,7 +122,7 @@ UINT32 sprcros2_state::screen_update( screen_device &screen, bitmap_ind16 &bitma
 			UINT16 tile = m_bgvram[count];
 			tile |= (m_bgattr[count] & 7) << 8;
 			bool flipx = bool(m_bgattr[count] & 0x08);
-			UINT8 color = 0;
+			UINT8 color = (m_bgattr[count] & 0xf0) >> 4;
 			
 			gfx->opaque(bitmap,cliprect,tile,color,flipx,0,x*8-m_bg_scrollx,y*8-m_bg_scrolly);
 			gfx->opaque(bitmap,cliprect,tile,color,flipx,0,x*8+256-m_bg_scrollx,y*8-m_bg_scrolly);
@@ -132,7 +134,7 @@ UINT32 sprcros2_state::screen_update( screen_device &screen, bitmap_ind16 &bitma
 	}
 	
 	count = 0;
-	gfx = m_gfxdecode->gfx(2);
+	//gfx = m_gfxdecode->gfx(2);
 
 	for (y=0;y<32;y++)
 	{
@@ -140,9 +142,9 @@ UINT32 sprcros2_state::screen_update( screen_device &screen, bitmap_ind16 &bitma
 		{
 			UINT16 tile = m_fgvram[count];
 			tile |= (m_fgattr[count] & 3) << 8;
-			UINT8 color = 0;
+			UINT8 color = (m_fgattr[count] & 0xfc) >> 3;
 			
-			gfx->transpen(bitmap,cliprect,tile,color,0,0,x*8,y*8,0);
+			gfx_1->transpen(bitmap,cliprect,tile,color,0,0,x*8,y*8,0);
 
 			count++;
 		}
@@ -154,12 +156,14 @@ UINT32 sprcros2_state::screen_update( screen_device &screen, bitmap_ind16 &bitma
 
 WRITE8_MEMBER(sprcros2_state::master_output_w)
 {
+	popmessage("%02x",data);
 	if(data & 0xbe)
 		printf("master 07 -> %02x\n",data);
 
 	membank("master_rombank")->set_entry((data&0x40)>>6);
 	m_master_nmi_enable = bool(data & 1);
-//	if(data & 8)
+	m_master_irq_enable = bool(data & 8);
+//	if(data & 0x80)
 //		m_master_cpu->set_input_line(0,HOLD_LINE);
 }
 
@@ -305,7 +309,7 @@ static const gfx_layout fg_layout =
 
 static GFXDECODE_START( sprcros2 )
 	GFXDECODE_ENTRY( "gfx1", 0, bg_layout,     0,   16 )
-	GFXDECODE_ENTRY( "gfx2", 0, sprite_layout, 256, 6  )
+	GFXDECODE_ENTRY( "gfx2", 0, sprite_layout, 256, 32 )
 	GFXDECODE_ENTRY( "gfx3", 0, fg_layout,     512, 64 )
 GFXDECODE_END
 
@@ -327,6 +331,52 @@ void sprcros2_state::machine_reset()
 
 PALETTE_INIT_MEMBER(sprcros2_state, sprcros2)
 {
+	const UINT8 *color_prom = memregion("proms")->base();
+	int i;
+
+	/* create a lookup table for the palette */
+	for (i = 0; i < 0x20; i++)
+	{
+		int bit0, bit1, bit2;
+		int r, g, b;
+
+		/* red component */
+		bit0 = (color_prom[i] >> 0) & 0x01;
+		bit1 = (color_prom[i] >> 1) & 0x01;
+		bit2 = (color_prom[i] >> 2) & 0x01;
+		r = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+
+		/* green component */
+		bit0 = (color_prom[i] >> 3) & 0x01;
+		bit1 = (color_prom[i] >> 4) & 0x01;
+		bit2 = (color_prom[i] >> 5) & 0x01;
+		g = 0x21 * bit0 + 0x47 * bit1 + 0x97 * bit2;
+
+		/* blue component */
+		bit0 = (color_prom[i] >> 6) & 0x01;
+		bit1 = (color_prom[i] >> 7) & 0x01;
+		b = 0x47 * bit0 + 0xb8 * bit1;
+		palette.set_pen_color(i,rgb_t(r,g,b));
+
+		palette.set_indirect_color(i, rgb_t(r, g, b));
+	}
+
+	/* color_prom now points to the beginning of the lookup table */
+	color_prom += 0x20;
+
+	/* bg */
+	for (i = 0; i < 0x100; i++)
+	{
+		UINT8 ctabentry = (color_prom[i] & 0x0f) | ((color_prom[i + 0x100] & 0x0f) << 4);
+		palette.set_pen_indirect(i, ctabentry);
+	}
+
+	/* sprites & fg */
+	for (i = 0x100; i < 0x300; i++)
+	{
+		UINT8 ctabentry = color_prom[i + 0x100];
+		palette.set_pen_indirect(i, ctabentry);
+	}
 }
 
 INTERRUPT_GEN_MEMBER(sprcros2_state::master_vblank_irq)
@@ -341,6 +391,15 @@ INTERRUPT_GEN_MEMBER(sprcros2_state::slave_vblank_irq)
 		device.execute().set_input_line(INPUT_LINE_NMI, PULSE_LINE);
 }
 
+TIMER_DEVICE_CALLBACK_MEMBER(sprcros2_state::master_scanline)
+{
+	int scanline = param;
+
+
+	if(scanline == 0 && m_master_irq_enable == true)
+		m_master_cpu->set_input_line(0, HOLD_LINE);
+}
+
 static MACHINE_CONFIG_START( sprcros2, sprcros2_state )
 
 	/* basic machine hardware */
@@ -348,6 +407,7 @@ static MACHINE_CONFIG_START( sprcros2, sprcros2_state )
 	MCFG_CPU_PROGRAM_MAP(master_map)
 	MCFG_CPU_IO_MAP(master_io)
 	MCFG_CPU_VBLANK_INT_DRIVER("screen", sprcros2_state,  master_vblank_irq)
+	MCFG_TIMER_DRIVER_ADD_SCANLINE("scantimer", sprcros2_state, master_scanline, "screen", 0, 1)
 
 	MCFG_CPU_ADD("slave_cpu",Z80,MAIN_CLOCK/4)
 	MCFG_CPU_PROGRAM_MAP(slave_map)
@@ -365,6 +425,7 @@ static MACHINE_CONFIG_START( sprcros2, sprcros2_state )
 	MCFG_GFXDECODE_ADD("gfxdecode", "palette", sprcros2)
 
 	MCFG_PALETTE_ADD("palette", 768)
+	MCFG_PALETTE_INDIRECT_ENTRIES(32)
 	MCFG_PALETTE_INIT_OWNER(sprcros2_state, sprcros2)
 
 	/* sound hardware */
