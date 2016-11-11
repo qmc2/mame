@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 	// clean up
 	if ( rfbScreen ) {
 		rfbScreenCleanup(rfbScreen);
-		osd_free(rfbShadowFrameBuffer);
+		free(rfbShadowFrameBuffer);
 	}
 	delete frontend;
 	delete vnc_osd;
@@ -260,8 +260,8 @@ void vnc_osd_interface::init(running_machine &machine)
 		rfbScreen = rfbGetScreen(&rfbArgc, rfbArgv, rfbFrameBufferWidth, rfbFrameBufferHeight, VNC_OSD_BITS_PER_SAMPLE, VNC_OSD_SAMPLES_PER_PIXEL, VNC_OSD_BYTES_PER_PIXEL);
 		rfbScanLineSize = rfbFrameBufferWidth * VNC_OSD_BYTES_PER_PIXEL;
 		rfbBufferSize = rfbScanLineSize * rfbFrameBufferHeight;
-		rfbScreen->frameBuffer = (char *)osd_malloc(rfbBufferSize);
-		rfbShadowFrameBuffer = (char *)osd_malloc(rfbBufferSize);
+		rfbScreen->frameBuffer = (char *)malloc(rfbBufferSize);
+		rfbShadowFrameBuffer = (char *)malloc(rfbBufferSize);
 		memset(rfbScreen->frameBuffer, 0, rfbBufferSize);
 		memset(rfbShadowFrameBuffer, 0, rfbBufferSize);
 		rfbDesktopName = QString("%1@%2:%3").arg(emulator_info::get_appname()).arg(QHostInfo::localHostName()).arg(options.vnc_port() - 5900).toLocal8Bit();
@@ -665,15 +665,15 @@ void vnc_osd_interface::rfbNewFrameBuffer(int width, int height)
 	oldFB = rfbScreen->frameBuffer;
 	oldShadowFB = rfbShadowFrameBuffer;
 	uint32_t newBufferSize = width * height * VNC_OSD_BYTES_PER_PIXEL;
-	newFB = (char *)osd_malloc(newBufferSize);
-	newShadowFB = (char *)osd_malloc(newBufferSize);
+	newFB = (char *)malloc(newBufferSize);
+	newShadowFB = (char *)malloc(newBufferSize);
 	memset(newFB, 0, newBufferSize);
 	memset(newShadowFB, 0, newBufferSize);
 	rfbNewFramebuffer(rfbScreen, newFB, width, height, VNC_OSD_BITS_PER_SAMPLE, VNC_OSD_SAMPLES_PER_PIXEL, VNC_OSD_BYTES_PER_PIXEL);
 	rfbShadowFrameBuffer = newShadowFB;
 	rfbShadowValid = false;
-	osd_free(oldFB);
-	osd_free(oldShadowFB);
+	free(oldFB);
+	free(oldShadowFB);
 	//rfbLeaveCriticalSection = false;
 }
 
