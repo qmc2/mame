@@ -342,6 +342,18 @@ void vnc_osd_interface::update(bool skip_redraw)
 	// get the minimum width/height for the current layout and make that the (scaled) size of our target
 	vnc_render_target->compute_minimum_size(rfbFrameBufferWidth, rfbFrameBufferHeight);
 	rfbFrameBufferWidth *= rfbScale; rfbFrameBufferHeight *= rfbScale;
+	switch ( vnc_render_target->orientation() ) {
+		case ROT0:
+		case ROT180:
+			break;
+		case ROT90:
+		case ROT270: {
+				int32_t temp = rfbFrameBufferWidth;
+				rfbFrameBufferWidth = rfbFrameBufferHeight;
+				rfbFrameBufferHeight = temp;
+			}
+			break;
+	}
 	vnc_render_target->compute_visible_area(rfbFrameBufferWidth, rfbFrameBufferHeight, rfbFrameBufferHeight / ((rfbScreenCount > 0 ? rfbScreenCount : 1) * rfbFrameBufferWidth), vnc_render_target->orientation(), rfbFrameBufferWidth, rfbFrameBufferHeight);
 	vnc_render_target->set_bounds(rfbFrameBufferWidth, rfbFrameBufferHeight);
 
@@ -450,8 +462,6 @@ void vnc_osd_interface::update(bool skip_redraw)
 		}
 
 		bool modified = (x2 >= x1 && y2 >= y1);
-
-		//osd_printf_verbose("VNC-OSD-INFO: frame buffer modfied? %s\n", modified ? "yes" : "no");
 
 		if ( modified ) {
 			rfbMarkRectAsModified(rfbScreen, x1, y1, x2 + 1, y2 + 1);
