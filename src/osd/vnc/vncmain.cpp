@@ -342,17 +342,10 @@ void vnc_osd_interface::update(bool skip_redraw)
 	// get the minimum width/height for the current layout and make that the (scaled) size of our target
 	vnc_render_target->compute_minimum_size(rfbFrameBufferWidth, rfbFrameBufferHeight);
 	rfbFrameBufferWidth *= rfbScale; rfbFrameBufferHeight *= rfbScale;
-	switch ( vnc_render_target->orientation() ) {
-		case ROT0:
-		case ROT180:
-			break;
-		case ROT90:
-		case ROT270: {
-				int32_t temp = rfbFrameBufferWidth;
-				rfbFrameBufferWidth = rfbFrameBufferHeight;
-				rfbFrameBufferHeight = temp;
-			}
-			break;
+	if ( rfbFrameBufferWidth > rfbFrameBufferHeight ) {
+		int32_t temp = rfbFrameBufferWidth;
+		rfbFrameBufferWidth = rfbFrameBufferHeight;
+		rfbFrameBufferHeight = temp;
 	}
 	vnc_render_target->compute_visible_area(rfbFrameBufferWidth, rfbFrameBufferHeight, rfbFrameBufferHeight / ((rfbScreenCount > 0 ? rfbScreenCount : 1) * rfbFrameBufferWidth), vnc_render_target->orientation(), rfbFrameBufferWidth, rfbFrameBufferHeight);
 	vnc_render_target->set_bounds(rfbFrameBufferWidth, rfbFrameBufferHeight);
