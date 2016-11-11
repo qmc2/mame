@@ -33,26 +33,6 @@ using namespace Windows::ApplicationModel::DataTransfer;
 using namespace Windows::Foundation;
 
 #include <map>
-//============================================================
-//  MACROS
-//============================================================
-
-// presumed size of a page of memory
-#define PAGE_SIZE           4096
-
-// align allocations to start or end of the page?
-#define GUARD_ALIGN_START   0
-
-#if defined(__BIGGEST_ALIGNMENT__)
-#define MAX_ALIGNMENT       __BIGGEST_ALIGNMENT__
-#elif defined(__AVX__)
-#define MAX_ALIGNMENT       32
-#elif defined(__SSE__) || defined(__x86_64__) || defined(_M_X64)
-#define MAX_ALIGNMENT       16
-#else
-#define MAX_ALIGNMENT       sizeof(int64_t)
-#endif
-
 
 //============================================================
 //  GLOBAL VARIABLES
@@ -106,40 +86,8 @@ int osd_setenv(const char *name, const char *value, int overwrite)
 
 void osd_process_kill()
 {
-	std::fflush(stdout);
-	std::fflush(stderr);
 	TerminateProcess(GetCurrentProcess(), -1);
 }
-
-//============================================================
-//  osd_malloc
-//============================================================
-
-void *osd_malloc(size_t size)
-{
-	return malloc(size);
-}
-
-
-//============================================================
-//  osd_malloc_array
-//============================================================
-
-void *osd_malloc_array(size_t size)
-{
-	return malloc(size);
-}
-
-
-//============================================================
-//  osd_free
-//============================================================
-
-void osd_free(void *ptr)
-{
-	free(ptr);
-}
-
 
 //============================================================
 //  osd_alloc_executable
@@ -184,7 +132,7 @@ void osd_break_into_debugger(const char *message)
 
 static char *get_clipboard_text_by_format(UINT format, std::string (*convert)(LPCVOID data))
 {
-	/*DataPackageView^ dataPackageView;
+	DataPackageView^ dataPackageView;
 	IAsyncOperation<String^>^ getTextOp;
 	String^ clipboardText;
 
@@ -192,8 +140,7 @@ static char *get_clipboard_text_by_format(UINT format, std::string (*convert)(LP
 	getTextOp = dataPackageView->GetTextAsync();
 	clipboardText = getTextOp->GetResults();
 
-	return  osd::text::from_wstring(clipboardText->Data()).c_str();*/
-	return nullptr;
+	return (char *)convert(clipboardText->Data()).c_str();
 }
 
 //============================================================
