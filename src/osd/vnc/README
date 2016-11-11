@@ -1,0 +1,8 @@
+This project provides a lightweight VNC OSD interface for MAME, so the
+emulator runs as an RFB server you can connect to through a VNC client.
+
+Please see the project's wiki-page for more details:
+http://wiki.batcom-it.net/index.php?title=VNC_OSD_interface
+
+The VNC OSD interface, Copyright (C) 2013 - 2016 René Reucher, is free software
+distributed under the terms of the MAME license (http://mamedev.org/legal.html).

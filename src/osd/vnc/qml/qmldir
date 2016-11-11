@@ -1,0 +1,6 @@
+OverlayWindow ./ui_overlay.qml
+ConnectionView ./ui_connections.qml
+KeyboardMapper ./ui_keyboards.qml
+MouseMapper ./ui_mice.qml
+ChatConsole ./ui_chat.qml
+EmulatorReturn ./ui_return.qml
