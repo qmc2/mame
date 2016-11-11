@@ -1,3 +1,2 @@
-- Add support for true-type fonts (internal UI)
 - Add support for a MAME (VNC OSD) specific audio protocol
 - Add support for *multiple* virtual keyboards/mice (one per non-spectator client)
