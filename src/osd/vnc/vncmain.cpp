@@ -4,17 +4,9 @@
 #include <QByteArray>
 #include <QString>
 #include <QLocale>
-#include <QUrl>
-#include <QMetaType>
-#include <QApplication>
-#include <QGraphicsObject>
-#include <QGraphicsSceneMouseEvent>
-#include <QKeyEvent>
-//#include <QQuickView>
-//#include <QQuickItem>
-//#include <QQmlContext>
 #include <QHostInfo>
-
+#include <string.h>
+#include <unistd.h>
 #include "emu.h"
 #include "osdepend.h"
 #include "mame.h"
@@ -23,30 +15,9 @@
 #include "render.h"
 #include "uiinput.h"
 #include "keysym2ucs.h"
-#include "keysym2qt.h"
 #include "osdvnc.h"
-#include <string.h>
-#include <unistd.h>
-#include <vncinput.h>
 #include "rendersw.hxx"
-
-//#include "roleitemmodel.h"
-
-// min/max of two constants
-#define MAX(a, b)	(((a) > (b)) ? (a) : (b))
-#define MIN(a, b)	(((a) < (b)) ? (a) : (b))
-
-running_machine *vnc_osd_interface::m_machine = 0;
-
-//============================================================
-//  TYPES
-//============================================================
-
-struct ConnectionEntry {
-	enum ConnectionRoles { IdRole = Qt::UserRole + 1, AddressRole, HostnameRole, PortRole };
-};
-
-const char *emulator_name() { return emulator_info::get_appname(); }
+#include "vncinput.h"
 
 //============================================================
 //  CONSTANTS
@@ -68,12 +39,18 @@ const char *emulator_name() { return emulator_info::get_appname(); }
 //============================================================
 
 // make a string out of a non-string constant
-#define STR(s)				#s
-#define XSTR(s)				STR(s)
+#define STR(s)		#s
+#define XSTR(s)		STR(s)
+
+// min/max of two constants
+#define MAX(a, b)	(((a) > (b)) ? (a) : (b))
+#define MIN(a, b)	(((a) < (b)) ? (a) : (b))
 
 //============================================================
 //  GLOBALS
 //============================================================
+
+running_machine *vnc_osd_interface::m_machine = 0;
 
 // a single rendering target
 static render_target *vnc_render_target = 0;
@@ -107,24 +84,6 @@ int rfbScale = 1;
 QByteArray rfbDesktopName;
 vnc_osd_interface *vnc_osd = 0;
 
-// overlay GUI related
-/*
-QApplication *vncOsdApp = 0;
-QQuickView *vncOsdOverlayUi = 0;
-QSize vncOsdUiSceneSize;
-QRect vncOsdUiScaledRect;
-RoleItemModel *vncOsdConnectionModel = 0;
-bool vncOsdOverlayUiActive = false;
-osd_ticks_t vncOsdLastMouseClick = 0;
-bool vncOsdLastUiActive = false;
-bool vncOsdWasUiPaused = false;
-*/
-
-// log mutex
-MUTEX(vncOsdLogMutex);
-
-//extern rfbBool rfbLeaveCriticalSection;
-
 const options_entry vnc_options::vnc_option_entries[] =
 {
 	{ 0,			0,		OPTION_HEADER,		"VNC OPTIONS" },
@@ -150,27 +109,10 @@ int main(int argc, char *argv[])
 	rfbArgc = argc;
 	rfbArgv = argv;
 
-    	INIT_MUTEX(vncOsdLogMutex);
-
 	// instantiate options and OSD
 	vnc_options options;
 	vnc_osd = new vnc_osd_interface(options);
 	vnc_osd->register_options();
-
-	// initialize the VNC OSD overlay UI
-	/*
-	vncOsdApp = new QApplication(argc, argv);
-	qRegisterMetaType<QModelIndex>("QModelIndex"); // this is weird but necessary to satisfy the QML layer
-	vncOsdOverlayUi = new QQuickView;
-	vncOsdOverlayUi->rootContext()->setContextProperty("connectionModel", 0);
-	vncOsdOverlayUi->setSource(QUrl::fromLocalFile("src/osd/vnc/qml/ui_overlay.qml"));
-	vncOsdOverlayUi->rootObject()->setProperty("windowTitle", QString("VNC OSD interface v%1").arg(XSTR(VNC_OSD_VERSION)));
-	vncOsdOverlayUi->scene()->setBackgroundBrush(Qt::transparent);
-	vncOsdOverlayUi->setViewportUpdateMode(QGraphicsView::NoViewportUpdate);
-	vncOsdOverlayUi->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	vncOsdOverlayUi->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-	vncOsdUiSceneSize = vncOsdOverlayUi->scene()->sceneRect().size().toSize();
-	*/
 
 	// run the actual emulation
 	cli_frontend *frontend = new cli_frontend(options, *vnc_osd);
@@ -187,41 +129,17 @@ int main(int argc, char *argv[])
 }
 
 //============================================================
-//  human_readable_value
-//============================================================
-
-QString human_readable_value(double value)
-{
-	static QString humanReadableString;
-	static QLocale locale;
-	if ( value / VNC_OSD_ONE_KILOBYTE < VNC_OSD_ONE_KILOBYTE ) {
-		humanReadableString = locale.toString(value / (double)VNC_OSD_ONE_KILOBYTE, 'f', 2) + " KB";
-		return humanReadableString;
-	}
-	if ( value / VNC_OSD_ONE_MEGABYTE < VNC_OSD_ONE_KILOBYTE ) {
-		humanReadableString = locale.toString(value / (double)VNC_OSD_ONE_MEGABYTE, 'f', 2) + " MB";
-		return humanReadableString;
-	}
-	humanReadableString = locale.toString(value / VNC_OSD_ONE_GIGABYTE, 'f', 2) + " GB";
-	return humanReadableString;
-}
-
-//============================================================
-//  vnc_osd_output_callback
-//============================================================
-
-void vnc_osd_output_callback(const char *msg, va_list args)
-{
-	vnc_osd->output_callback(OSD_OUTPUT_CHANNEL_LOG, msg, args);
-}
-
-//============================================================
 //  constructor
 //============================================================
 
-vnc_osd_interface::vnc_osd_interface(vnc_options &options)
-	: osd_common_t(options), m_options(options), m_frameCounter(0), m_framePercent(0.0), m_frameBufferSize(0.0)
+vnc_osd_interface::vnc_osd_interface(vnc_options &options) :
+	osd_common_t(options),
+	m_options(options),
+	m_frameCounter(0),
+	m_framePercent(0.0),
+	m_frameBufferSize(0.0)
 {
+	// NOP
 }
 
 //============================================================
@@ -230,12 +148,7 @@ vnc_osd_interface::vnc_osd_interface(vnc_options &options)
 
 vnc_osd_interface::~vnc_osd_interface()
 {
-	/*
-	if ( vncOsdOverlayUi )
-		delete vncOsdOverlayUi;
-	if ( vncOsdApp )
-		delete vncOsdApp;
-	*/
+	// NOP
 }
 
 //============================================================
@@ -249,7 +162,7 @@ void vnc_osd_interface::init(running_machine &machine)
 	m_machine = &machine;
 
 	// log banner
-	osd_printf_verbose("VNC-OSD-INFO: VNC OSD interface v%s\n", XSTR(VNC_OSD_VERSION));
+	osd_printf_verbose("VNC OSD v%s\n", XSTR(VNC_OSD_VERSION));
 
 	vnc_options &options = downcast<vnc_options &>(machine.options());
 
@@ -286,7 +199,7 @@ void vnc_osd_interface::init(running_machine &machine)
 	vnc_render_target = machine.render().target_alloc();
 
 	for (const screen_device &screen : screen_device_iterator(machine.root_device()))
-		osd_printf_verbose("VNC-OSD-INFO: Screen #%d: %dx%d\n", rfbScreenCount++, screen.width(), screen.height());
+		osd_printf_verbose("Screen #%d: %dx%d\n", rfbScreenCount++, screen.width(), screen.height());
 
 	// we need to call this initially -- before setting the actual view (!) -- to get a sane state on the *configured*
 	// view, otherwise machine-config saving (with regard to the layout-view) won't work correctly on machine exit
@@ -330,7 +243,6 @@ void vnc_osd_interface::vnc_exit(running_machine *)
 {
 	rfbScreenCount = 0;
 	rfbResetPause = osd_ticks();
-	// vncOsdWasUiPaused = vncOsdLastUiActive = vncOsdOverlayUiActive = false;
 }
 
 //============================================================
@@ -392,42 +304,6 @@ void vnc_osd_interface::update(bool skip_redraw)
 #endif
 		primlist.release_lock();
 
-		/*
-		checkUiState();
-		if ( vncOsdOverlayUiActive ) {
-			// update & render the VNC OSD overlay UI
-			vncOsdApp->processEvents();
-			vncOsdOverlayUi->update();
-			m_vncOsdUiImage = QImage(vncOsdUiSceneSize, QImage::Format_ARGB32);
-			m_vncOsdUiImage.fill(Qt::transparent);
-			QPainter p(&m_vncOsdUiImage);
-			vncOsdOverlayUi->scene()->render(&p);
-			p.end();
-			m_vncOsdUiImage = m_vncOsdUiImage.scaled(rfbFrameBufferWidth - 10, rfbFrameBufferHeight - 10, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-			uint32_t xOffset = (rfbFrameBufferWidth - m_vncOsdUiImage.width()) / 2;
-			uint32_t yOffset = (rfbFrameBufferHeight - m_vncOsdUiImage.height()) / 2;
-			vncOsdUiScaledRect = QRect(xOffset, yOffset, m_vncOsdUiImage.width(), m_vncOsdUiImage.height());
-			for (uint32_t y = 0; y < m_vncOsdUiImage.height(); y++) {
-				uint32_t yPos = (y + yOffset) * rfbScanLineSize;
-				for (uint32_t x = 0; x < m_vncOsdUiImage.width(); x++) {
-					QRgb pix = m_vncOsdUiImage.pixel(x, y);
-					if ( qAlpha(pix) != 0 ) {
-						uint32_t pos = yPos + (x + xOffset) * VNC_OSD_BYTES_PER_PIXEL;
-#if defined(VNC_OSD_BIGENDIAN)
-						rfbScreen->frameBuffer[pos + 1] = qRed(pix);
-						rfbScreen->frameBuffer[pos + 2] = qGreen(pix);
-						rfbScreen->frameBuffer[pos + 3] = qBlue(pix);
-#else
-						rfbScreen->frameBuffer[pos + 0] = qRed(pix);
-						rfbScreen->frameBuffer[pos + 1] = qGreen(pix);
-						rfbScreen->frameBuffer[pos + 2] = qBlue(pix);
-#endif
-					}
-				}
-			}
-		}
-		*/
-
 		int32_t x1 = rfbFrameBufferWidth,
 			y1 = rfbFrameBufferHeight,
 			x2 = -1,
@@ -469,7 +345,7 @@ void vnc_osd_interface::update(bool skip_redraw)
 			if ( m_frameCounter >= VNC_OSD_PERFINFO_FRAMES ) {
 				double frameTotalBytes = (double)m_frameCounter * (double)rfbBufferSize;
 				m_framePercent /= (double)m_frameCounter;
-				osd_printf_verbose("VNC-OSD-INFO: Raw frame-buffer updates (last %d frames): %.2f%% [%s / %s]\n",
+				osd_printf_verbose("Raw frame-buffer updates (last %d frames): %.2f%% [%s / %s]\n",
 						   m_frameCounter,
 						   100.0 * m_framePercent,
 						   human_readable_value(frameTotalBytes * m_framePercent).toLocal8Bit().constData(),
@@ -531,48 +407,7 @@ void vnc_osd_interface::customize_input_type_list(simple_list<input_type_entry> 
 
 void vnc_osd_interface::rfbProcessMouseEvent(int buttonMask, int x, int y, rfbClientPtr /*rfb_client*/)
 {
-	//static int currentUiButtonMask = 0;
-
 	vnc_input_set_mouse_state(buttonMask, x, y);
-	/*
-	if ( !vncOsdOverlayUiActive )
-		vnc_input_set_mouse_state(buttonMask, x, y);
-	else if ( vncOsdUiScaledRect.contains(x, y, true) && buttonMask != currentUiButtonMask ) {
-		// post a synthetic mouse-event to the UI (we don't post *pure* move-events, though)
-		Qt::MouseButtons qtButtonState = Qt::NoButton;
-		if ( buttonMask & 0x1 )
-			qtButtonState |= Qt::LeftButton;
-		if ( buttonMask & 0x2 )
-			qtButtonState |= Qt::MiddleButton;
-		if ( buttonMask & 0x4 )
-			qtButtonState |= Qt::RightButton;
-		int diffButtonMask = buttonMask ^ currentUiButtonMask;
-		Qt::MouseButton qtRelevantButton = Qt::NoButton;
-		QEvent::Type qtEventType = QEvent::None;
-		bool isDoubleClick = (osd_ticks() - vncOsdLastMouseClick < VNC_OSD_DOUBLECLICK_TIMEOUT) && (buttonMask & 0x1);
-		if ( diffButtonMask & 0x1 ) {
-			qtRelevantButton = Qt::LeftButton;
-			qtEventType = buttonMask & 0x1 ? (isDoubleClick ? QEvent::GraphicsSceneMouseDoubleClick : QEvent::GraphicsSceneMousePress) : QEvent::GraphicsSceneMouseRelease;
-		} else if ( diffButtonMask & 0x2 ) {
-			qtRelevantButton = Qt::MiddleButton;
-			qtEventType = buttonMask & 0x2 ? QEvent::GraphicsSceneMousePress : QEvent::GraphicsSceneMouseRelease;
-		} else if ( diffButtonMask & 0x4 ) {
-			qtRelevantButton = Qt::RightButton;
-			qtEventType = buttonMask & 0x4 ? QEvent::GraphicsSceneMousePress : QEvent::GraphicsSceneMouseRelease;
-		}
-		if ( qtRelevantButton != Qt::NoButton ) {
-			QGraphicsSceneMouseEvent *emulatedMouseEvent = new QGraphicsSceneMouseEvent(qtEventType);
-			double xScale = (double)vncOsdUiSceneSize.width() / (double)vncOsdUiScaledRect.width();
-			double yScale = (double)vncOsdUiSceneSize.height() / (double)vncOsdUiScaledRect.height();
-			emulatedMouseEvent->setScenePos(QPointF((x - vncOsdUiScaledRect.x()) * xScale, (y - vncOsdUiScaledRect.y()) * yScale));
-			emulatedMouseEvent->setButton(qtRelevantButton);
-			emulatedMouseEvent->setButtons(qtButtonState);
-			vncOsdApp->postEvent(vncOsdOverlayUi->scene(), emulatedMouseEvent);
-		}
-		currentUiButtonMask = buttonMask;
-		vncOsdLastMouseClick = buttonMask & 0x1 ? osd_ticks() : vncOsdLastMouseClick;
-	}
-	*/
 }
 
 void vnc_osd_interface::rfbProcessKeyEvent(rfbBool pressed, rfbKeySym key, rfbClientPtr /*rfb_client*/)
@@ -580,16 +415,6 @@ void vnc_osd_interface::rfbProcessKeyEvent(rfbBool pressed, rfbKeySym key, rfbCl
 	vnc_input_set_key_state(pressed, key);
 	if ( pressed )
 		m_machine->ui_input().push_char_event(vnc_render_target, (char32_t) keysym2ucs(key));
-	/*
-	if ( !vncOsdOverlayUiActive ) {
-		if ( pressed )
-			ui_input_push_char_event(*m_machine, vnc_render_target, keysym2ucs(key));
-	} else {
-		// post a synthetic key-event to the UI
-		QKeyEvent *emulatedKeyEvent = new QKeyEvent(pressed ? QEvent::KeyPress : QEvent::KeyRelease, keysym2qt(key), Qt::NoModifier);
-		vncOsdApp->postEvent(vncOsdOverlayUi, emulatedKeyEvent);
-	}
-	*/
 }
 
 void vnc_osd_interface::rfbProcessClientDisconnect(rfbClientPtr rfb_client)
@@ -597,58 +422,17 @@ void vnc_osd_interface::rfbProcessClientDisconnect(rfbClientPtr rfb_client)
 	rfbClientCounter--;
 	if ( rfbAutoPause && rfbClientCounter < 1 ) {
 		if ( !m_machine->paused() ) {
-			osd_printf_verbose("VNC-OSD-INFO: Auto-pausing machine\n");
+			osd_printf_verbose("Auto-pausing machine\n");
 			m_machine->pause();
 			rfbWasAutoPaused = true;
 		}
 	}
-
-	/*
-	QString id = QString::number((quint64)rfb_client, 16);
-	for (int row = 0; row < vncOsdConnectionModel->rowCount(); row++) {
-		QStandardItem *item = vncOsdConnectionModel->item(row);
-		if ( item->data(ConnectionEntry::IdRole) == id ) {
-			vncOsdConnectionModel->removeRow(row);
-			break;
-		}
-	}
-	*/
 }
 
 enum rfbNewClientAction vnc_osd_interface::rfbProcessNewClient(rfbClientPtr rfb_client)
 {
-	/*
-	if ( !vncOsdConnectionModel ) {
-		QHash<int, QByteArray> roleNames;
-		roleNames[ConnectionEntry::IdRole] = "id";
-		roleNames[ConnectionEntry::AddressRole] = "address";
-		roleNames[ConnectionEntry::HostnameRole] = "hostname";
-		roleNames[ConnectionEntry::PortRole] = "port";
-		vncOsdConnectionModel = new RoleItemModel(roleNames);
-		vncOsdOverlayUi->rootContext()->setContextProperty("connectionModel", vncOsdConnectionModel);
-	}
-	QStandardItem* connectionItem = new QStandardItem();
-	connectionItem->setData(QString::number((quint64)rfb_client, 16), ConnectionEntry::IdRole);
-	connectionItem->setData(QString(rfb_client->host), ConnectionEntry::AddressRole);
-	connectionItem->setData(QHostInfo::fromName(QString(rfb_client->host)).hostName(), ConnectionEntry::HostnameRole);
-	struct sockaddr_in sa;
-	socklen_t sa_len = sizeof(sa);
-#if defined(VNC_OSD_WINDOWS)
-	if ( getpeername(rfb_client->sock, (LPSOCKADDR)&sa, &sa_len) == 0 )
-		connectionItem->setData(QString::number(ntohs(sa.sin_port)), ConnectionEntry::PortRole);
-	else
-		connectionItem->setData("error", ConnectionEntry::PortRole);
-#else
-	if ( getpeername(rfb_client->sock, (sockaddr*)&sa, &sa_len) == 0 )
-		connectionItem->setData(QString::number(ntohs(sa.sin_port)), ConnectionEntry::PortRole);
-	else
-		connectionItem->setData("error", ConnectionEntry::PortRole);
-#endif
-	vncOsdConnectionModel->appendRow(connectionItem);
-	*/
-
 	if ( rfbAutoPause && rfbWasAutoPaused ) {
-		osd_printf_verbose("VNC-OSD-INFO: Auto-resuming machine\n");
+		osd_printf_verbose("Auto-resuming machine\n");
 		m_machine->resume();
 	}
 	rfbWasAutoPaused = false;
@@ -660,7 +444,6 @@ enum rfbNewClientAction vnc_osd_interface::rfbProcessNewClient(rfbClientPtr rfb_
 
 void vnc_osd_interface::rfbNewFrameBuffer(int width, int height)
 {
-	//rfbLeaveCriticalSection = true;
 	char *oldFB, *oldShadowFB, *newFB, *newShadowFB;
 	oldFB = rfbScreen->frameBuffer;
 	oldShadowFB = rfbShadowFrameBuffer;
@@ -674,38 +457,25 @@ void vnc_osd_interface::rfbNewFrameBuffer(int width, int height)
 	rfbShadowValid = false;
 	free(oldFB);
 	free(oldShadowFB);
-	//rfbLeaveCriticalSection = false;
 }
-
-/*
-void vnc_osd_interface::checkUiState()
-{
-	if ( vncOsdOverlayUiActive && vncOsdOverlayUi->rootObject()->property("exitRequested").toBool() ) {
-		vncOsdOverlayUiActive = false;
-		vncOsdOverlayUi->rootObject()->setProperty("exitRequested", false);
-	}
-
-	if ( vncOsdLastUiActive != vncOsdOverlayUiActive ) {
-		if ( vncOsdLastUiActive && m_machine->paused() && vncOsdWasUiPaused ) {
-			osd_printf_verbose("VNC-OSD-INFO: Auto-resuming machine\n");
-			m_machine->resume();
-			vncOsdWasUiPaused = false;
-		} else if ( !m_machine->paused() ) {
-			osd_printf_verbose("VNC-OSD-INFO: Auto-pausing machine\n");
-			m_machine->pause();
-			vncOsdWasUiPaused = true;
-		} else
-			vncOsdWasUiPaused = false;
-	}
-
-	vncOsdLastUiActive = vncOsdOverlayUiActive;
-}
-*/
 
 void vnc_osd_interface::output_callback(osd_output_channel channel, const char *msg, va_list args)
 {
-	// we need 'serialized' output because log messages can come from different threads
-	LOCK(vncOsdLogMutex);
 	osd_common_t::output_callback(channel, msg, args);
-	UNLOCK(vncOsdLogMutex);
+}
+
+QString &vnc_osd_interface::human_readable_value(double value)
+{
+	static QString humanReadableString;
+	static QLocale locale;
+	if ( value / VNC_OSD_ONE_KILOBYTE < VNC_OSD_ONE_KILOBYTE ) {
+		humanReadableString = locale.toString(value / (double)VNC_OSD_ONE_KILOBYTE, 'f', 2) + " KB";
+		return humanReadableString;
+	}
+	if ( value / VNC_OSD_ONE_MEGABYTE < VNC_OSD_ONE_KILOBYTE ) {
+		humanReadableString = locale.toString(value / (double)VNC_OSD_ONE_MEGABYTE, 'f', 2) + " MB";
+		return humanReadableString;
+	}
+	humanReadableString = locale.toString(value / VNC_OSD_ONE_GIGABYTE, 'f', 2) + " GB";
+	return humanReadableString;
 }

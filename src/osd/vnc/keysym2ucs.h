@@ -4,7 +4,6 @@
 #ifndef KEYSYM2UCS_H
 #define KEYSYM2UCS_H
 
-#include "emu.h"
 extern "C" {
 #include <rfb/rfb.h>
 }

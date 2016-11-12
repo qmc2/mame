@@ -4,8 +4,6 @@
 #ifndef VNCINPUT_H
 #define VNCINPUT_H
 
-#include "emu.h"
-
 extern "C" {
 #include <rfb/rfb.h>
 #include <rfb/keysym.h>

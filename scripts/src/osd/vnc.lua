@@ -16,10 +16,7 @@ end
 
 buildoptions {
 	backtick(pkgconfigcmd() .. " --cflags Qt5Core"),
---	backtick(pkgconfigcmd() .. " --cflags Qt5Gui"),
-	backtick(pkgconfigcmd() .. " --cflags Qt5Widgets"),
 	backtick(pkgconfigcmd() .. " --cflags Qt5Network"),
---	backtick(pkgconfigcmd() .. " --cflags Qt5Qml"),
 	"-fPIC",
 	backtick(pkgconfigcmd() .. " --cflags sdl2"),
 	backtick(pkgconfigcmd() .. " --cflags SDL2_ttf"),
@@ -28,10 +25,7 @@ buildoptions {
 
 linkoptions {
 	backtick(pkgconfigcmd() .. " --libs Qt5Core"),
---	backtick(pkgconfigcmd() .. " --libs Qt5Gui"),
-	backtick(pkgconfigcmd() .. " --libs Qt5Widgets"),
 	backtick(pkgconfigcmd() .. " --libs Qt5Network"),
---	backtick(pkgconfigcmd() .. " --libs Qt5Qml"),
 	backtick(pkgconfigcmd() .. " --libs sdl2"),
 	backtick(pkgconfigcmd() .. " --libs SDL2_ttf"),
 	backtick(pkgconfigcmd() .. " --libs fontconfig"),
@@ -95,10 +89,6 @@ project ("osd_" .. _OPTIONS["osd"])
 		MOC = MOCTST
 	end
 
-	custombuildtask {
-		{ MAME_DIR .. "src/osd/vnc/roleitemmodel.h", GEN_DIR .. "osd/vnc/roleitemmodel.moc.cpp", {}, { MOC .. "$(MOCINCPATH) $(<) -o $(@)" }},
-	}
-
 	includedirs {
 		MAME_DIR .. "src/emu",
 		MAME_DIR .. "src/devices", -- accessing imagedev from debugger
@@ -118,12 +108,9 @@ project ("osd_" .. _OPTIONS["osd"])
 	}
 
 	files {
-		GEN_DIR  .. "osd/vnc/roleitemmodel.moc.cpp",
 		MAME_DIR .. "src/osd/vnc/vncmain.cpp",
 		MAME_DIR .. "src/osd/vnc/vncinput.cpp",
 		MAME_DIR .. "src/osd/vnc/keysym2ucs.cpp",
-		MAME_DIR .. "src/osd/vnc/keysym2qt.cpp",
-		MAME_DIR .. "src/osd/vnc/roleitemmodel.cpp",
 	}
 
 BASE_TARGETOS = "unix"

@@ -4,7 +4,6 @@
 extern "C" {
 #include <rfb/rfb.h>
 }
-
 #include <stdint.h>
 
 typedef struct _codepair {
@@ -790,48 +789,45 @@ codepair keysymtab[759] = {
 
 uint32_t keysym2ucs(rfbKeySym keysym)
 {
-    int min = 0;
-    int max = sizeof(keysymtab) / sizeof(codepair) - 1;
-    int mid;
+	int min = 0;
+	int max = sizeof(keysymtab) / sizeof(codepair) - 1;
+	int mid;
 
-    /* first check for Latin-1 characters (1:1 mapping) */
-    if ((keysym >= 0x0020 && keysym <= 0x007e) ||
-        (keysym >= 0x00a0 && keysym <= 0x00ff))
-        return keysym;
+	// first check for Latin-1 characters (1:1 mapping)
+	if ( (keysym >= 0x0020 && keysym <= 0x007e) || (keysym >= 0x00a0 && keysym <= 0x00ff) )
+		return keysym;
 
-    /* handle some special keys */
-    switch (keysym) {
-        case 0xff08: // BackSpace
-            return 0x0008;
-        case 0xff09: // Tab
-            return 0x0009;
-        case 0xff0a: // Linefeed
-            return 0x000a;
-        case 0xff0d: // Return
-            return 0x000d;
-        case 0xff1b: // Escape
-            return 0x001b;
-        case 0xffff: // Delete
-            return 0x007f;
-    }
-
-    /* also check for directly encoded 24-bit UCS characters */
-    if ((keysym & 0xff000000) == 0x01000000)
-	    	return keysym & 0x00ffffff;
-
-    /* binary search in table */
-    while (max >= min) {
-	mid = (min + max) / 2;
-	if (keysymtab[mid].keysym < keysym)
-	    min = mid + 1;
-	else if (keysymtab[mid].keysym > keysym)
-	    max = mid - 1;
-	else {
-	    /* found it */
-	    return keysymtab[mid].ucs;
+	// handle some special keys
+	switch ( keysym ) {
+		case 0xff08: // BackSpace
+			return 0x0008;
+		case 0xff09: // Tab
+			return 0x0009;
+		case 0xff0a: // Linefeed
+			return 0x000a;
+		case 0xff0d: // Return
+			return 0x000d;
+		case 0xff1b: // Escape
+			return 0x001b;
+		case 0xffff: // Delete
+			return 0x007f;
 	}
-    }
 
-    /* no matching unicode value found */
-    return -1;
+	// also check for directly encoded 24-bit UCS characters
+	if ( (keysym & 0xff000000) == 0x01000000 )
+		return keysym & 0x00ffffff;
+
+	// binary search in table
+	while ( max >= min ) {
+		mid = (min + max) / 2;
+		if (keysymtab[mid].keysym < keysym)
+			min = mid + 1;
+		else if ( keysymtab[mid].keysym > keysym )
+			max = mid - 1;
+		else
+			return keysymtab[mid].ucs;
+	}
+
+	// no matching unicode value found
+	return -1;
 }

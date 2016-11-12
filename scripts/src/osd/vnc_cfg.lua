@@ -2,7 +2,7 @@
 -- copyright-holders:MAMEdev Team
 
 defines {
-	"VNC_OSD_VERSION=0.2-alpha1",
+	"VNC_OSD_VERSION=0.2",
 	"OSD_VNC",
 	"OSD_SDL",
 	"USE_QTDEBUG=0",

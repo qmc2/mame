@@ -16,7 +16,6 @@ extern "C" {
 #define VNC_OSD_KEY_STATE(p)		(p ? VNC_OSD_KEY_STATE_PRESSED : VNC_OSD_KEY_STATE_RELEASED)
 #define VNC_OSD_GEN_ITEM_ID		input_code(DEVICE_CLASS_KEYBOARD, 0, ITEM_CLASS_SWITCH, ITEM_MODIFIER_NONE, ITEM_ID_OTHER_SWITCH).item_id()
 
-//extern bool vncOsdOverlayUiActive;
 extern int32_t rfbFrameBufferWidth;
 extern int32_t rfbFrameBufferHeight;
 
@@ -259,11 +258,6 @@ void vnc_input_init_keyboard(input_device *kb)
 
 void vnc_input_set_key_state(rfbBool pressed, rfbKeySym key)
 {
-	/*
-	if ( vncOsdOverlayUiActive )
-		if ( key != XK_Home && !VNC_OSD_IS_CONTROL_MODIFIER(key) )
-			return;
-			*/
 	switch ( key ) {
 		case XK_Escape: keyboard_state[VNC_OSD_KEY_ESCAPE] = VNC_OSD_KEY_STATE(pressed); break;
 		case XK_Tab: keyboard_state[VNC_OSD_KEY_TAB] = VNC_OSD_KEY_STATE(pressed); break;
@@ -357,7 +351,6 @@ void vnc_input_set_key_state(rfbBool pressed, rfbKeySym key)
 		case XK_parenright: keyboard_state[VNC_OSD_KEY_CLOSEBRACE] = VNC_OSD_KEY_STATE(pressed); break;
 		case XK_equal: keyboard_state[VNC_OSD_KEY_EQUALS] = VNC_OSD_KEY_STATE(pressed); break;
 		case XK_question: keyboard_state[VNC_OSD_KEY_QUESTION] = VNC_OSD_KEY_STATE(pressed); break;
-
 		case XK_colon: keyboard_state[VNC_OSD_KEY_COLON] = VNC_OSD_KEY_STATE(pressed); break;
 		case XK_asciitilde: case XK_dead_tilde: keyboard_state[VNC_OSD_KEY_TILDE] = VNC_OSD_KEY_STATE(pressed); break;
 		case XK_backslash: keyboard_state[VNC_OSD_KEY_BACKSLASH] = VNC_OSD_KEY_STATE(pressed); break;
@@ -366,7 +359,7 @@ void vnc_input_set_key_state(rfbBool pressed, rfbKeySym key)
 		case XK_period: keyboard_state[VNC_OSD_KEY_PERIOD] = VNC_OSD_KEY_STATE(pressed); break;
 		case XK_minus: keyboard_state[VNC_OSD_KEY_MINUS] = VNC_OSD_KEY_STATE(pressed); break;
 		case XK_plus: keyboard_state[VNC_OSD_KEY_PLUS] = VNC_OSD_KEY_STATE(pressed); break;
-		default: if ( pressed ) osd_printf_verbose("VNC-OSD-INFO: Key symbol 0x%x ignored\n", key); break;
+		default: if ( pressed ) osd_printf_verbose("Key symbol 0x%x ignored\n", key); break;
 	}
 }
 

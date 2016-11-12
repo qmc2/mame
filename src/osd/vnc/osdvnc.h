@@ -59,16 +59,15 @@ public:
 	static void rfbNewFrameBuffer(int width, int height);
 
 	void output_callback(osd_output_channel channel, const char *msg, va_list args);
+	QString &human_readable_value(double value);
 
 private:
 	static void vnc_exit(running_machine *);
-	//static void checkUiState();
 	static running_machine *m_machine;
 	vnc_options &m_options;
 	int32_t m_frameCounter;
 	double m_framePercent;
 	double m_frameBufferSize;
-	//QImage m_vncOsdUiImage;
 
 };
 
