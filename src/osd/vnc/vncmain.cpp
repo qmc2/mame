@@ -16,8 +16,11 @@
 #include "uiinput.h"
 #include "keysym2ucs.h"
 #include "osdvnc.h"
-#include "rendersw.hxx"
 #include "vncinput.h"
+#ifdef max
+#undef max
+#endif
+#include "rendersw.hxx"
 
 //============================================================
 //  CONSTANTS
@@ -39,12 +42,12 @@
 //============================================================
 
 // make a string out of a non-string constant
-#define STR(s)		#s
-#define XSTR(s)		STR(s)
+#define VNC_OSD_STR(s)		#s
+#define VNC_OSD_XSTR(s)		VNC_OSD_STR(s)
 
 // min/max of two constants
-#define MAX(a, b)	(((a) > (b)) ? (a) : (b))
-#define MIN(a, b)	(((a) < (b)) ? (a) : (b))
+#define VNC_OSD_MAX(a, b)	(((a) > (b)) ? (a) : (b))
+#define VNC_OSD_MIN(a, b)	(((a) < (b)) ? (a) : (b))
 
 //============================================================
 //  GLOBALS
@@ -162,7 +165,7 @@ void vnc_osd_interface::init(running_machine &machine)
 	m_machine = &machine;
 
 	// log banner
-	osd_printf_verbose("VNC OSD v%s\n", XSTR(VNC_OSD_VERSION));
+	osd_printf_verbose("VNC OSD v%s\n", VNC_OSD_XSTR(VNC_OSD_VERSION));
 
 	vnc_options &options = downcast<vnc_options &>(machine.options());
 
@@ -192,7 +195,7 @@ void vnc_osd_interface::init(running_machine &machine)
 		rfbUseMouse = options.mouse();
 		rfbAdjustFB = options.vnc_adjust_fb();
 		rfbAutoPause = options.vnc_autopause();
-		rfbScale = MAX(1, options.prescale());
+		rfbScale = VNC_OSD_MAX(1, options.prescale());
 	}
 
 	// initialize the video system by allocating a rendering target and setting a view
@@ -315,10 +318,10 @@ void vnc_osd_interface::update(bool skip_redraw)
 			for (int32_t y = 0; y < rfbFrameBufferHeight; y++) {
 				for (int32_t x = 0; x < rfbFrameBufferWidth; x++) {
 					if ( *(int32_t *)(rfbShadowFrameBuffer + pos) != *(int32_t *)(rfbScreen->frameBuffer + pos) ) {
-						x1 = MIN(x, x1);
-						y1 = MIN(y, y1);
-						x2 = MAX(x, x2);
-						y2 = MAX(y, y2);
+						x1 = VNC_OSD_MIN(x, x1);
+						y1 = VNC_OSD_MIN(y, y1);
+						x2 = VNC_OSD_MAX(x, x2);
+						y2 = VNC_OSD_MAX(y, y2);
 					}
 					pos += VNC_OSD_BYTES_PER_PIXEL;
 				}
