@@ -21,6 +21,7 @@ buildoptions {
 	backtick(pkgconfigcmd() .. " --cflags sdl2"),
 	backtick(pkgconfigcmd() .. " --cflags SDL2_ttf"),
 	backtick(pkgconfigcmd() .. " --cflags fontconfig"),
+	backtick(pkgconfigcmd() .. " --cflags libvncserver"),
 }
 
 linkoptions {
@@ -29,12 +30,12 @@ linkoptions {
 	backtick(pkgconfigcmd() .. " --libs sdl2"),
 	backtick(pkgconfigcmd() .. " --libs SDL2_ttf"),
 	backtick(pkgconfigcmd() .. " --libs fontconfig"),
+	backtick(pkgconfigcmd() .. " --libs libvncserver"),
 }
 
 links {
 	"m",
 	"pthread",
-	"vncserver",
 	"GL",
 	"X11",
 	"asound",
