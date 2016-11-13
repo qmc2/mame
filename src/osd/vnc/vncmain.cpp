@@ -17,9 +17,6 @@
 #include "keysym2ucs.h"
 #include "osdvnc.h"
 #include "vncinput.h"
-#ifdef max
-#undef max
-#endif
 #include "rendersw.hxx"
 
 //============================================================
