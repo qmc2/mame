@@ -17,6 +17,9 @@
 #include "keysym2ucs.h"
 #include "osdvnc.h"
 #include "vncinput.h"
+
+#ifdef max
+#undef max // this is required for gcc 5.4 on Linux Mint 18 at least
 #include "rendersw.hxx"
 
 //============================================================
