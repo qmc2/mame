@@ -40,6 +40,12 @@ links {
 	"X11",
 	"asound",
 	"util",
+	"Qt5Core",
+	"Qt5Network",
+	"SDL2",
+	"SDL2_ttf",
+	"fontconfig",
+	"vncserver",
 }
 
 project ("qtdbg_" .. _OPTIONS["osd"])
