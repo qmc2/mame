@@ -129,6 +129,7 @@ int main(int argc, char *argv[])
 	}
 	delete frontend;
 	delete vnc_osd;
+
 	return returnCode;
 }
 
@@ -418,10 +419,10 @@ void vnc_osd_interface::rfbProcessKeyEvent(rfbBool pressed, rfbKeySym key, rfbCl
 {
 	vnc_input_set_key_state(pressed, key);
 	if ( pressed )
-		m_machine->ui_input().push_char_event(vnc_render_target, (char32_t) keysym2ucs(key));
+		m_machine->ui_input().push_char_event(vnc_render_target, keysym2ucs(key));
 }
 
-void vnc_osd_interface::rfbProcessClientDisconnect(rfbClientPtr rfb_client)
+void vnc_osd_interface::rfbProcessClientDisconnect(rfbClientPtr /*rfb_client*/)
 {
 	rfbClientCounter--;
 	if ( rfbAutoPause && rfbClientCounter < 1 ) {
