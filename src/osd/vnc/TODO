@@ -1,2 +1,2 @@
-- Add support for a MAME (VNC OSD) specific audio protocol
+- WIP: Adding support for a VNC OSD specific audio protocol
 - Add support for *multiple* virtual keyboards/mice (one per client)
