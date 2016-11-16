@@ -70,6 +70,8 @@ private:
 	int32_t m_frameCounter;
 	double m_framePercent;
 	double m_frameBufferSize;
+	int32_t m_rawAudioBytes;
+	int32_t m_encodedAudioBytes;
 
 };
 

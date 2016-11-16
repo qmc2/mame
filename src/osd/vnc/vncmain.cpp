@@ -154,7 +154,9 @@ vnc_osd_interface::vnc_osd_interface(vnc_options &options) :
 	m_options(options),
 	m_frameCounter(0),
 	m_framePercent(0.0),
-	m_frameBufferSize(0.0)
+	m_frameBufferSize(0.0),
+	m_rawAudioBytes(0),
+	m_encodedAudioBytes(0)
 {
 	// NOP
 }
@@ -371,13 +373,17 @@ void vnc_osd_interface::update(bool skip_redraw)
 			if ( m_frameCounter >= VNC_OSD_PERFINFO_FRAMES ) {
 				double frameTotalBytes = (double)m_frameCounter * (double)rfbBufferSize;
 				m_framePercent /= (double)m_frameCounter;
-				osd_printf_verbose("Raw frame-buffer updates (last %d frames): %.2f%% [%s / %s]\n",
-						   m_frameCounter,
+				osd_printf_verbose("Video RFB updates: %.2f%% [%s / %s]\n",
 						   100.0 * m_framePercent,
 						   human_readable_value(frameTotalBytes * m_framePercent).toLocal8Bit().constData(),
 						   human_readable_value(frameTotalBytes).toLocal8Bit().constData());
 				m_frameCounter = 0;
 				m_framePercent = 0.0;
+				osd_printf_verbose("Audio codec ratio: %.2f%% [%s / %s]\n",
+						   (double)m_encodedAudioBytes / (double)m_rawAudioBytes,
+						   human_readable_value(m_encodedAudioBytes).toLocal8Bit().constData(),
+						   human_readable_value(m_rawAudioBytes).toLocal8Bit().constData());
+				m_encodedAudioBytes = m_rawAudioBytes = 0;
 			}
 		}
 
@@ -391,6 +397,7 @@ void vnc_osd_interface::update(bool skip_redraw)
 
 void vnc_osd_interface::init_audio()
 {
+	m_encodedAudioBytes = m_rawAudioBytes = 0;
 	avcodec_init();
 	avcodec_register_all();
 	codec = avcodec_find_encoder(CODEC_ID_MP3);
@@ -436,6 +443,8 @@ void vnc_osd_interface::update_audio_stream(const int16_t *buffer, int samples_t
 	if ( m_options.sample_rate() != 0 && codecContext ) {
 		int out_size = avcodec_encode_audio(codecContext, encoder_buffer, AVCODEC_MAX_AUDIO_FRAME_SIZE, (const short *)buffer);
 		if ( out_size > 0 ) {
+			m_rawAudioBytes += samples_this_frame * sizeof(int16_t) * 2;
+			m_encodedAudioBytes += out_size;
 			if ( mp3File )
 				fwrite(encoder_buffer, 1, out_size, mp3File);
 			// FIXME: send out_size bytes in encoder_buffer via UDP to connected clients
