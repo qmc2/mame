@@ -377,13 +377,13 @@ void vnc_osd_interface::update(bool skip_redraw)
 						   100.0 * m_framePercent,
 						   human_readable_value(frameTotalBytes * m_framePercent).toLocal8Bit().constData(),
 						   human_readable_value(frameTotalBytes).toLocal8Bit().constData());
-				m_frameCounter = 0;
+				if ( m_rawAudioBytes > 0 )
+					osd_printf_verbose("Audio codec ratio: %.2f%% [%s / %s]\n",
+							   100.0 * ((double)m_encodedAudioBytes / (double)m_rawAudioBytes),
+							   human_readable_value(m_encodedAudioBytes).toLocal8Bit().constData(),
+							   human_readable_value(m_rawAudioBytes).toLocal8Bit().constData());
+				m_frameCounter = m_encodedAudioBytes = m_rawAudioBytes = 0;
 				m_framePercent = 0.0;
-				osd_printf_verbose("Audio codec ratio: %.2f%% [%s / %s]\n",
-						   (double)m_encodedAudioBytes / (double)m_rawAudioBytes,
-						   human_readable_value(m_encodedAudioBytes).toLocal8Bit().constData(),
-						   human_readable_value(m_rawAudioBytes).toLocal8Bit().constData());
-				m_encodedAudioBytes = m_rawAudioBytes = 0;
 			}
 		}
 
