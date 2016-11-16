@@ -28,6 +28,7 @@ public:
 	int vnc_port() const { return int_value("vnc_port"); }
 	bool vnc_adjust_fb() const { return bool_value("vnc_adjust_fb"); }
 	bool vnc_autopause() const { return bool_value("vnc_autopause"); }
+	bool vnc_mp3write() const { return bool_value("vnc_mp3write"); }
 
 private:
 	static const options_entry vnc_option_entries[];
@@ -60,6 +61,7 @@ public:
 
 	void output_callback(osd_output_channel channel, const char *msg, va_list args);
 	QString &human_readable_value(double value);
+	void init_audio();
 
 private:
 	static void vnc_exit(running_machine *);

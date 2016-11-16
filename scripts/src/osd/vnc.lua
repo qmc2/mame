@@ -22,6 +22,7 @@ buildoptions {
 	backtick(pkgconfigcmd() .. " --cflags SDL2_ttf"),
 	backtick(pkgconfigcmd() .. " --cflags fontconfig"),
 	backtick(pkgconfigcmd() .. " --cflags libvncserver"),
+	backtick(pkgconfigcmd() .. " --cflags libavcodec"),
 }
 
 linkoptions {
@@ -31,6 +32,7 @@ linkoptions {
 	backtick(pkgconfigcmd() .. " --libs SDL2_ttf"),
 	backtick(pkgconfigcmd() .. " --libs fontconfig"),
 	backtick(pkgconfigcmd() .. " --libs libvncserver"),
+	backtick(pkgconfigcmd() .. " --libs libavcodec"),
 }
 
 links {
@@ -46,6 +48,8 @@ links {
 	"SDL2_ttf",
 	"fontconfig",
 	"vncserver",
+	"avcodec",
+	"avutil",
 }
 
 project ("qtdbg_" .. _OPTIONS["osd"])

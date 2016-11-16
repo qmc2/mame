@@ -18,6 +18,11 @@
 #include "osdvnc.h"
 #include "vncinput.h"
 
+extern "C" {
+#include <libavcodec/avcodec.h>
+#include <libavutil/mathematics.h>
+}
+
 #ifdef max
 #undef max // this is required for gcc 5.4 on Linux Mint 18 at least
 #endif
@@ -63,6 +68,12 @@ static render_target *vnc_render_target = 0;
 static input_device *keyboard_device = 0;
 static input_device *mouse_device = 0;
 
+// AV codec
+AVCodec *codec = 0;
+AVCodecContext *codecContext = 0;
+uint8_t encoder_buffer[AVCODEC_MAX_AUDIO_FRAME_SIZE];
+FILE *mp3File = 0;
+
 // RFB server related
 rfbScreenInfoPtr rfbScreen = 0;
 char *rfbShadowFrameBuffer;
@@ -94,6 +105,7 @@ const options_entry vnc_options::vnc_option_entries[] =
 	{ "vnc_port",		"5900",		OPTION_INTEGER,		"TCP port to listen on for incoming VNC connections (default: 5900)" },
 	{ "vnc_adjust_fb",	"1",		OPTION_BOOLEAN,		"Auto-adjust the frame-buffer width to be a multiple of 4 for best client compatibility (default: 1)" },
 	{ "vnc_autopause",	"1",		OPTION_BOOLEAN,		"Pause the machine when all clients disconnected, resume it when a client connects (default: 1)" },
+	{ "vnc_mp3write",	"0",		OPTION_BOOLEAN,		"Writes MP3 encoded audio data to 'mame_audio_stream.mp3' in the current working directory (default: 0)" },
 
 	// end of list
 	{ 0 }
@@ -234,6 +246,9 @@ void vnc_osd_interface::init(running_machine &machine)
 	if ( rfbUseMouse )
 		vnc_input_init_mouse(mouse_device);
 
+	// initialize audio
+	init_audio();
+
 	// get notified on emu exit
 	machine.add_notifier(MACHINE_NOTIFY_EXIT, machine_notify_delegate(&vnc_osd_interface::vnc_exit, &machine));
 
@@ -248,6 +263,12 @@ void vnc_osd_interface::vnc_exit(running_machine *)
 {
 	rfbScreenCount = 0;
 	rfbResetPause = osd_ticks();
+	if ( codecContext ) {
+		avcodec_close(codecContext);
+		av_free(codecContext);
+	}
+	if ( mp3File )
+		fclose(mp3File);
 }
 
 //============================================================
@@ -365,13 +386,61 @@ void vnc_osd_interface::update(bool skip_redraw)
 }
 
 //============================================================
+//  init_audio
+//============================================================
+
+void vnc_osd_interface::init_audio()
+{
+	avcodec_init();
+	avcodec_register_all();
+	codec = avcodec_find_encoder(CODEC_ID_MP3);
+	if ( !codec )
+		osd_printf_verbose("MP3 codec not found\n");
+	else {
+		codecContext = avcodec_alloc_context();
+		if ( !codecContext )
+			osd_printf_verbose("Could not allocate MP3 codec context\n");
+		else {
+			codecContext->codec_type = CODEC_TYPE_AUDIO;
+			codecContext->bit_rate = 64000;
+			//codecContext->sample_rate = m_options.sample_rate();
+			codecContext->sample_rate = 44100;
+			codecContext->channels = 2;
+			codecContext->channel_layout = CH_LAYOUT_STEREO;
+			codecContext->sample_fmt = AV_SAMPLE_FMT_S16;
+			if ( avcodec_open(codecContext, codec) < 0 ) {
+				osd_printf_verbose("Could not open MP3 codec\n");
+				avcodec_close(codecContext);
+				av_free(codecContext);
+				codecContext = 0;
+			} else {
+				osd_printf_verbose("MP3 codec successfully opened\n");
+				if ( m_options.vnc_mp3write() ) {
+					mp3File = fopen("mame_audio_stream.mp3", "w");
+					if ( mp3File )
+						osd_printf_verbose("MP3 output file successfully opened\n");
+					else
+						osd_printf_verbose("Could not open MP3 output file\n");
+				}
+			}
+		}
+	}
+}
+
+//============================================================
 //  update_audio_stream
 //============================================================
 
 void vnc_osd_interface::update_audio_stream(const int16_t *buffer, int samples_this_frame)
 {
-	// if we had actual sound output, we would copy the
-	// interleaved stereo samples to our sound stream
+	if ( m_options.sample_rate() != 0 && codecContext ) {
+		int out_size = avcodec_encode_audio(codecContext, encoder_buffer, AVCODEC_MAX_AUDIO_FRAME_SIZE, (const short *)buffer);
+		if ( out_size > 0 ) {
+			if ( mp3File )
+				fwrite(encoder_buffer, 1, out_size, mp3File);
+			// FIXME: send out_size bytes in encoder_buffer via UDP to connected clients
+		}
+	}
 }
 
 //============================================================

@@ -1,10 +1,12 @@
-v0.2, 12-NOV-2016:
+v0.2, 16-NOV-2016:
 
 - rebuilt from scratch for modern MAME's OSD interface
 - Linux only for now (a clean pkg-config environment is required)
 - LibVNCServer is no longer 'bundled', instead you need to install the devel
   package for your Linux distribution (in case of openSUSE Tumbleweed for
   example this can be accomplished with "sudo zypper in LibVNCServer-devel")
+- WIP: audio encoding through libavcodec/libavutil (use the new option
+  'vnc_mp3write' to save audio data / the audio server part is still missing)
 
 v0.1, 15-APR-2015:
 
