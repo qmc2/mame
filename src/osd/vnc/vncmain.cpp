@@ -135,6 +135,8 @@ int main(int argc, char *argv[])
 	int returnCode = frontend->execute(argc, argv);
 	
 	// clean up
+	if ( mp3File )
+		fclose(mp3File);
 	if ( rfbScreen ) {
 		rfbScreenCleanup(rfbScreen);
 		free(rfbShadowFrameBuffer);
@@ -269,8 +271,6 @@ void vnc_osd_interface::vnc_exit(running_machine *)
 		avcodec_close(codecContext);
 		av_free(codecContext);
 	}
-	if ( mp3File )
-		fclose(mp3File);
 }
 
 //============================================================
@@ -422,7 +422,7 @@ void vnc_osd_interface::init_audio()
 				codecContext = 0;
 			} else {
 				osd_printf_verbose("MP3 codec successfully opened\n");
-				if ( m_options.vnc_mp3write() ) {
+				if ( m_options.vnc_mp3write() && !mp3File ) {
 					mp3File = fopen("mame_audio_stream.mp3", "w");
 					if ( mp3File )
 						osd_printf_verbose("MP3 output file successfully opened\n");
