@@ -206,6 +206,8 @@ void vnc_osd_interface::init(running_machine &machine)
 		rfbScreen->newClientHook = vnc_osd_interface::rfbProcessNewClient;
 		rfbScreen->port = rfbScreen->ipv6port = options.vnc_port();
 		rfbScreen->deferUpdateTime = 0;
+		::rfbLog = vnc_osd_interface::rfbLog;
+		::rfbErr = vnc_osd_interface::rfbLog;
 		rfbInitServer(rfbScreen);
 		rfbRunEventLoop(rfbScreen, -1, true);
 		rfbLastFrameBufferWidth = rfbFrameBufferWidth;
@@ -540,6 +542,16 @@ void vnc_osd_interface::rfbNewFrameBuffer(int width, int height)
 	rfbShadowValid = false;
 	free(oldFB);
 	free(oldShadowFB);
+}
+
+void vnc_osd_interface::rfbLog(const char *format, ...)
+{
+	va_list args;
+	QString message;
+	va_start(args, format);
+	message.vsprintf(format, args);
+	va_end(args);
+	osd_printf_verbose("RFB: %s", message.toLocal8Bit().constData());
 }
 
 void vnc_osd_interface::output_callback(osd_output_channel channel, const char *msg, va_list args)

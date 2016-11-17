@@ -58,6 +58,7 @@ public:
 	static void rfbProcessClientDisconnect(rfbClientPtr rfb_client);
 	static enum rfbNewClientAction rfbProcessNewClient(rfbClientPtr rfb_client);
 	static void rfbNewFrameBuffer(int width, int height);
+	static void rfbLog(const char *format, ...);
 
 	void output_callback(osd_output_channel channel, const char *msg, va_list args);
 	QString &human_readable_value(double value);
