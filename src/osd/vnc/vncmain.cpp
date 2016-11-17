@@ -124,6 +124,8 @@ int main(int argc, char *argv[])
 {
 	rfbArgc = argc;
 	rfbArgv = argv;
+	rfbLog = vnc_osd_interface::rfbLog;
+	rfbErr = vnc_osd_interface::rfbLog;
 
 	// instantiate options and OSD
 	vnc_options options;
@@ -206,8 +208,6 @@ void vnc_osd_interface::init(running_machine &machine)
 		rfbScreen->newClientHook = vnc_osd_interface::rfbProcessNewClient;
 		rfbScreen->port = rfbScreen->ipv6port = options.vnc_port();
 		rfbScreen->deferUpdateTime = 0;
-		::rfbLog = vnc_osd_interface::rfbLog;
-		::rfbErr = vnc_osd_interface::rfbLog;
 		rfbInitServer(rfbScreen);
 		rfbRunEventLoop(rfbScreen, -1, true);
 		rfbLastFrameBufferWidth = rfbFrameBufferWidth;
