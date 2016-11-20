@@ -2,11 +2,14 @@
 // copyright-holders:MAMEdev Team
 
 #include <QByteArray>
+#include <QHostInfo>
 #include <QString>
 #include <QLocale>
-#include <QHostInfo>
+#include <QPoint>
+
 #include <string.h>
 #include <unistd.h>
+
 #include "emu.h"
 #include "osdepend.h"
 #include "mame.h"
@@ -35,6 +38,8 @@ extern "C" {
 #define VNC_OSD_BITS_PER_SAMPLE		8
 #define VNC_OSD_SAMPLES_PER_PIXEL	1
 #define VNC_OSD_BYTES_PER_PIXEL		4
+#define VNC_OSD_UPDATE_QUAD_SIZE	50	// 50x50 pixels
+#define VNC_OSD_UPDATE_QUAD_SIZE_SQ	VNC_OSD_UPDATE_QUAD_SIZE * VNC_OSD_UPDATE_QUAD_SIZE
 #define VNC_OSD_MOUSE_MOVE_TIMEOUT	1000	// OSD ticks
 #define VNC_OSD_REFRESH_TIMEOUT		200000	// OSD ticks
 #define VNC_OSD_DOUBLECLICK_TIMEOUT	250000	// OSD ticks
@@ -60,6 +65,8 @@ extern "C" {
 //============================================================
 
 running_machine *vnc_osd_interface::m_machine = 0;
+int32_t vnc_osd_interface::m_xMaxQuads = 0;
+int32_t vnc_osd_interface::m_yMaxQuads = 0;
 
 // a single rendering target
 static render_target *vnc_render_target = 0;
@@ -157,7 +164,7 @@ vnc_osd_interface::vnc_osd_interface(vnc_options &options) :
 	osd_common_t(options),
 	m_options(options),
 	m_frameCounter(0),
-	m_framePercent(0.0),
+	m_frameChangePercent(0.0),
 	m_frameBufferSize(0.0),
 	m_rawAudioBytes(0),
 	m_encodedAudioBytes(0)
@@ -334,50 +341,27 @@ void vnc_osd_interface::update(bool skip_redraw)
 #endif
 		primlist.release_lock();
 
-		int32_t x1 = rfbFrameBufferWidth,
-			y1 = rfbFrameBufferHeight,
-			x2 = -1,
-			y2 = -1;
-
-		if ( rfbShadowValid ) {
-			// find the outer rectangle of changed pixels
-			uint32_t pos = 0;
-			for (int32_t y = 0; y < rfbFrameBufferHeight; y++) {
-				for (int32_t x = 0; x < rfbFrameBufferWidth; x++) {
-					if ( *(int32_t *)(rfbShadowFrameBuffer + pos) != *(int32_t *)(rfbScreen->frameBuffer + pos) ) {
-						x1 = VNC_OSD_MIN(x, x1);
-						y1 = VNC_OSD_MIN(y, y1);
-						x2 = VNC_OSD_MAX(x, x2);
-						y2 = VNC_OSD_MAX(y, y2);
-					}
-					pos += VNC_OSD_BYTES_PER_PIXEL;
+		QList<QRect> &modified_quads = find_modified_quads();
+		if ( !modified_quads.isEmpty() ) {
+			if ( rfbVerbose ) {
+				foreach (QRect r, modified_quads) {
+					rfbMarkRectAsModified(rfbScreen, r.topLeft().x(), r.topLeft().y(), r.bottomRight().x() + 1, r.bottomRight().y() + 1);
+					m_frameChangePercent += (double)(VNC_OSD_UPDATE_QUAD_SIZE_SQ) / (double)m_frameBufferSize;
 				}
-			}
-		} else {
-			// the shadow frame buffer is invalid, so force a full update
-			x1 = y1 = 0;
-			x2 = rfbFrameBufferWidth - 1;
-			y2 = rfbFrameBufferHeight - 1;
-		}
-
-		bool modified = (x2 >= x1 && y2 >= y1);
-
-		if ( modified ) {
-			rfbMarkRectAsModified(rfbScreen, x1, y1, x2 + 1, y2 + 1);
+			} else
+				foreach (QRect r, modified_quads)
+					rfbMarkRectAsModified(rfbScreen, r.topLeft().x(), r.topLeft().y(), r.bottomRight().x() + 1, r.bottomRight().y() + 1);
 			memcpy(rfbShadowFrameBuffer, rfbScreen->frameBuffer, rfbBufferSize);
 			rfbShadowValid = true;
 		}
 
 		if ( rfbVerbose ) {
-			if ( modified )
-				m_framePercent += (double)((x2 - x1) * (y2 - y1)) / m_frameBufferSize;
-			m_frameCounter++;
-			if ( m_frameCounter >= VNC_OSD_PERFINFO_FRAMES ) {
+			if ( ++m_frameCounter >= VNC_OSD_PERFINFO_FRAMES ) {
 				double frameTotalBytes = (double)m_frameCounter * (double)rfbBufferSize;
-				m_framePercent /= (double)m_frameCounter;
+				m_frameChangePercent /= (double)m_frameCounter;
 				osd_printf_verbose("Video RFB updates: %.2f%% [%s / %s]\n",
-						   100.0 * m_framePercent,
-						   human_readable_value(frameTotalBytes * m_framePercent).toLocal8Bit().constData(),
+						   100.0 * m_frameChangePercent,
+						   human_readable_value(frameTotalBytes * m_frameChangePercent).toLocal8Bit().constData(),
 						   human_readable_value(frameTotalBytes).toLocal8Bit().constData());
 				if ( m_rawAudioBytes > 0 )
 					osd_printf_verbose("Audio codec ratio: %.2f%% [%s / %s]\n",
@@ -385,12 +369,45 @@ void vnc_osd_interface::update(bool skip_redraw)
 							   human_readable_value(m_encodedAudioBytes).toLocal8Bit().constData(),
 							   human_readable_value(m_rawAudioBytes).toLocal8Bit().constData());
 				m_frameCounter = m_encodedAudioBytes = m_rawAudioBytes = 0;
-				m_framePercent = 0.0;
+				m_frameChangePercent = 0.0;
 			}
 		}
 
 		rfbResetPause = 0;
 	}
+}
+
+QList<QRect> &vnc_osd_interface::find_modified_quads()
+{
+	m_modifiedQuads.clear();
+	if ( rfbShadowValid ) {
+		// find changed quads
+		for (int y_quad = 0; y_quad < m_yMaxQuads; y_quad++) {
+			int32_t yy_quad = y_quad * VNC_OSD_UPDATE_QUAD_SIZE;
+			for (int x_quad = 0; x_quad < m_xMaxQuads; x_quad++) {
+				int32_t xx_quad = x_quad * VNC_OSD_UPDATE_QUAD_SIZE;
+				int32_t w = 1, h = 1;
+				bool modified = false;
+				for (int32_t y = yy_quad; y < yy_quad + VNC_OSD_UPDATE_QUAD_SIZE && y < rfbFrameBufferHeight; y++) {
+					h++;
+					w = 1;
+					uint32_t yy = y * rfbScanLineSize;
+					for (int32_t x = xx_quad; x < xx_quad + VNC_OSD_UPDATE_QUAD_SIZE && x < rfbFrameBufferWidth; x++) {
+						uint32_t pos = yy + x * VNC_OSD_BYTES_PER_PIXEL;
+						w++;
+						if ( !modified )
+							if ( *(int32_t *)(rfbShadowFrameBuffer + pos) != *(int32_t *)(rfbScreen->frameBuffer + pos) )
+								modified = true;
+					}
+				}
+				if ( modified )
+					m_modifiedQuads << QRect(xx_quad, yy_quad, w, h);
+			}
+		}
+	} else
+		// the shadow frame buffer is invalid, so force a full update
+		m_modifiedQuads << QRect(0, 0, rfbFrameBufferWidth, rfbFrameBufferHeight);
+	return m_modifiedQuads;
 }
 
 //============================================================
@@ -542,6 +559,14 @@ void vnc_osd_interface::rfbNewFrameBuffer(int width, int height)
 	rfbShadowValid = false;
 	free(oldFB);
 	free(oldShadowFB);
+
+	// pre-calc checkerboard dimensions
+	m_xMaxQuads = rfbFrameBufferWidth / VNC_OSD_UPDATE_QUAD_SIZE;
+	if ( rfbFrameBufferWidth % VNC_OSD_UPDATE_QUAD_SIZE > 0 )
+		m_xMaxQuads++;
+	m_yMaxQuads = rfbFrameBufferHeight / VNC_OSD_UPDATE_QUAD_SIZE;
+	if ( rfbFrameBufferHeight % VNC_OSD_UPDATE_QUAD_SIZE > 0 )
+		m_yMaxQuads++;
 }
 
 void vnc_osd_interface::rfbLog(const char *format, ...)

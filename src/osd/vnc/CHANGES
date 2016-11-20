@@ -1,4 +1,4 @@
-v0.2, 16-NOV-2016:
+v0.2, 20-NOV-2016:
 
 - rebuilt from scratch for modern MAME's OSD interface
 - Linux only for now (a clean pkg-config environment is required)
@@ -9,6 +9,10 @@ v0.2, 16-NOV-2016:
   'vnc_mp3write' to save audio data / the audio server part is still missing)
 - cleaner last-60-frames statistics, now including the current audio codec's
   compression ratio
+- improved / more effective algorithm for finding and updating changed parts
+  of the screen (the frame buffer is internally subdivided as a checkerboard,
+  and each of its squares (50x50 pixels²) is checked for changed pixels
+  individually and updated as block)
 
 v0.1, 15-APR-2015:
 

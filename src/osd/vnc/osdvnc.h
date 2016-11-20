@@ -15,6 +15,9 @@ extern "C" {
 #include "modules/osdmodule.h"
 #include "modules/font/font_module.h"
 
+#include <QList>
+#include <QRect>
+
 //============================================================
 //  TYPE DEFINITIONS
 //============================================================
@@ -62,6 +65,7 @@ public:
 
 	void output_callback(osd_output_channel channel, const char *msg, va_list args);
 	QString &human_readable_value(double value);
+	QList<QRect> &find_modified_quads();
 	void init_audio();
 
 private:
@@ -69,11 +73,12 @@ private:
 	static running_machine *m_machine;
 	vnc_options &m_options;
 	int32_t m_frameCounter;
-	double m_framePercent;
+	double m_frameChangePercent;
 	double m_frameBufferSize;
 	int32_t m_rawAudioBytes;
 	int32_t m_encodedAudioBytes;
-
+	QList<QRect> m_modifiedQuads;
+	static int32_t m_xMaxQuads, m_yMaxQuads;
 };
 
 //============================================================
