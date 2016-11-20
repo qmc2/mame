@@ -39,7 +39,6 @@ extern "C" {
 #define VNC_OSD_SAMPLES_PER_PIXEL	1
 #define VNC_OSD_BYTES_PER_PIXEL		4
 #define VNC_OSD_UPDATE_QUAD_SIZE	50	// 50x50 pixels
-#define VNC_OSD_UPDATE_QUAD_SIZE_SQ	VNC_OSD_UPDATE_QUAD_SIZE * VNC_OSD_UPDATE_QUAD_SIZE
 #define VNC_OSD_MOUSE_MOVE_TIMEOUT	1000	// OSD ticks
 #define VNC_OSD_REFRESH_TIMEOUT		200000	// OSD ticks
 #define VNC_OSD_DOUBLECLICK_TIMEOUT	250000	// OSD ticks
@@ -346,7 +345,7 @@ void vnc_osd_interface::update(bool skip_redraw)
 			if ( rfbVerbose ) {
 				foreach (QRect r, modified_quads) {
 					rfbMarkRectAsModified(rfbScreen, r.topLeft().x(), r.topLeft().y(), r.bottomRight().x() + 1, r.bottomRight().y() + 1);
-					m_frameChangePercent += (double)(VNC_OSD_UPDATE_QUAD_SIZE_SQ) / (double)m_frameBufferSize;
+					m_frameChangePercent += (double)((r.width() - 1) * (r.height() - 1)) / (double)m_frameBufferSize;
 				}
 			} else
 				foreach (QRect r, modified_quads)
