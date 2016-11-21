@@ -9,6 +9,7 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <stdio.h>
 
 #include "emu.h"
 #include "osdepend.h"
@@ -23,7 +24,6 @@
 
 extern "C" {
 #include <libavcodec/avcodec.h>
-#include <libavutil/mathematics.h>
 }
 
 #ifdef max
@@ -52,20 +52,20 @@ extern "C" {
 //============================================================
 
 // make a string out of a non-string constant
-#define VNC_OSD_STR(s)		#s
-#define VNC_OSD_XSTR(s)		VNC_OSD_STR(s)
+#define VNC_OSD_STR(s)			#s
+#define VNC_OSD_XSTR(s)			VNC_OSD_STR(s)
 
 // min/max of two constants
-#define VNC_OSD_MAX(a, b)	(((a) > (b)) ? (a) : (b))
-#define VNC_OSD_MIN(a, b)	(((a) < (b)) ? (a) : (b))
+#define VNC_OSD_MIN(a, b)		(((a) < (b)) ? (a) : (b))
+#define VNC_OSD_MAX(a, b)		(((a) > (b)) ? (a) : (b))
 
 //============================================================
 //  GLOBALS
 //============================================================
 
 running_machine *vnc_osd_interface::m_machine = 0;
-int32_t vnc_osd_interface::m_xMaxQuads = 0;
-int32_t vnc_osd_interface::m_yMaxQuads = 0;
+int32_t vnc_osd_interface::m_maxQuadsX = 0;
+int32_t vnc_osd_interface::m_maxQuadsY = 0;
 
 // a single rendering target
 static render_target *vnc_render_target = 0;
@@ -74,7 +74,7 @@ static render_target *vnc_render_target = 0;
 static input_device *keyboard_device = 0;
 static input_device *mouse_device = 0;
 
-// AV codec
+// AV codec related
 AVCodec *codec = 0;
 AVCodecContext *codecContext = 0;
 uint8_t encoder_buffer[AVCODEC_MAX_AUDIO_FRAME_SIZE];
@@ -358,12 +358,12 @@ void vnc_osd_interface::update(bool skip_redraw)
 			if ( ++m_frameCounter >= VNC_OSD_PERFINFO_FRAMES ) {
 				double frameTotalBytes = (double)m_frameCounter * (double)rfbBufferSize;
 				m_frameChangePercent /= (double)m_frameCounter;
-				osd_printf_verbose("Video RFB updates: %.2f%% [%s / %s]\n",
+				osd_printf_verbose("Video RFB updates: %.1f%% [%s / %s]\n",
 						   100.0 * m_frameChangePercent,
 						   human_readable_value(frameTotalBytes * m_frameChangePercent).toLocal8Bit().constData(),
 						   human_readable_value(frameTotalBytes).toLocal8Bit().constData());
 				if ( m_rawAudioBytes > 0 )
-					osd_printf_verbose("Audio codec ratio: %.2f%% [%s / %s]\n",
+					osd_printf_verbose("Audio codec ratio: %.1f%% [%s / %s]\n",
 							   100.0 * ((double)m_encodedAudioBytes / (double)m_rawAudioBytes),
 							   human_readable_value(m_encodedAudioBytes).toLocal8Bit().constData(),
 							   human_readable_value(m_rawAudioBytes).toLocal8Bit().constData());
@@ -381,9 +381,9 @@ QList<QRect> &vnc_osd_interface::find_modified_quads()
 	m_modifiedQuads.clear();
 	if ( rfbShadowValid ) {
 		// find changed quads
-		for (int y_quad = 0; y_quad < m_yMaxQuads; y_quad++) {
+		for (int y_quad = 0; y_quad < m_maxQuadsY; y_quad++) {
 			int32_t yy_quad = y_quad * VNC_OSD_UPDATE_QUAD_SIZE;
-			for (int x_quad = 0; x_quad < m_xMaxQuads; x_quad++) {
+			for (int x_quad = 0; x_quad < m_maxQuadsX; x_quad++) {
 				int32_t xx_quad = x_quad * VNC_OSD_UPDATE_QUAD_SIZE;
 				int32_t w = 1, h = 1;
 				bool modified = false;
@@ -560,12 +560,12 @@ void vnc_osd_interface::rfbNewFrameBuffer(int width, int height)
 	free(oldShadowFB);
 
 	// pre-calc checkerboard dimensions
-	m_xMaxQuads = rfbFrameBufferWidth / VNC_OSD_UPDATE_QUAD_SIZE;
+	m_maxQuadsX = rfbFrameBufferWidth / VNC_OSD_UPDATE_QUAD_SIZE;
 	if ( rfbFrameBufferWidth % VNC_OSD_UPDATE_QUAD_SIZE > 0 )
-		m_xMaxQuads++;
-	m_yMaxQuads = rfbFrameBufferHeight / VNC_OSD_UPDATE_QUAD_SIZE;
+		m_maxQuadsX++;
+	m_maxQuadsY = rfbFrameBufferHeight / VNC_OSD_UPDATE_QUAD_SIZE;
 	if ( rfbFrameBufferHeight % VNC_OSD_UPDATE_QUAD_SIZE > 0 )
-		m_yMaxQuads++;
+		m_maxQuadsY++;
 }
 
 void vnc_osd_interface::rfbLog(const char *format, ...)
