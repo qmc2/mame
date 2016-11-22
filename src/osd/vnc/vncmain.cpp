@@ -43,6 +43,7 @@ extern "C" {
 #define VNC_OSD_REFRESH_TIMEOUT		200000	// OSD ticks
 #define VNC_OSD_DOUBLECLICK_TIMEOUT	250000	// OSD ticks
 #define VNC_OSD_PERFINFO_FRAMES		60	// output performance-data every 60 frames
+#define VNC_OSD_ENCODER_BUFFER_SIZE	4096	// could be AVCODEC_MAX_AUDIO_FRAME_SIZE, but that's definitely too large
 #define VNC_OSD_ONE_KILOBYTE		1024.0f
 #define VNC_OSD_ONE_MEGABYTE		1048576.0f
 #define VNC_OSD_ONE_GIGABYTE		1073741824.0f
@@ -77,7 +78,7 @@ static input_device *mouse_device = 0;
 // AV codec related
 AVCodec *codec = 0;
 AVCodecContext *codecContext = 0;
-uint8_t encoder_buffer[AVCODEC_MAX_AUDIO_FRAME_SIZE];
+uint8_t encoder_buffer[VNC_OSD_ENCODER_BUFFER_SIZE];
 FILE *mp3File = 0;
 
 // RFB server related
@@ -428,8 +429,8 @@ void vnc_osd_interface::init_audio()
 		else {
 			codecContext->codec_type = CODEC_TYPE_AUDIO;
 			codecContext->bit_rate = 64000;
-			//codecContext->sample_rate = m_options.sample_rate();
-			codecContext->sample_rate = 44100;
+			codecContext->sample_rate = m_options.sample_rate();
+			//codecContext->sample_rate = 44100;
 			codecContext->channels = 2;
 			codecContext->channel_layout = CH_LAYOUT_STEREO;
 			codecContext->sample_fmt = AV_SAMPLE_FMT_S16;
@@ -459,14 +460,27 @@ void vnc_osd_interface::init_audio()
 void vnc_osd_interface::update_audio_stream(const int16_t *buffer, int samples_this_frame)
 {
 	if ( m_options.sample_rate() != 0 && codecContext ) {
-		int out_size = avcodec_encode_audio(codecContext, encoder_buffer, AVCODEC_MAX_AUDIO_FRAME_SIZE, (const short *)buffer);
-		if ( out_size > 0 ) {
-			m_rawAudioBytes += samples_this_frame * sizeof(int16_t) * 2;
-			m_encodedAudioBytes += out_size;
-			if ( mp3File )
-				fwrite(encoder_buffer, 1, out_size, mp3File);
-			// FIXME: send out_size bytes in encoder_buffer via UDP to connected clients
+		uint32_t bytes_left = samples_this_frame * 4;
+		uint32_t chunk_buffer_size = codecContext->frame_size * 4;
+		uint32_t offset = 0;
+		int8_t chunk_buffer[chunk_buffer_size];
+		while ( bytes_left > 0 )
+		{
+			uint32_t chunk_size = VNC_OSD_MIN(chunk_buffer_size, bytes_left);
+			memset(chunk_buffer, 0, chunk_buffer_size);
+			memcpy(chunk_buffer, buffer + offset, chunk_size);
+			int32_t out_size = avcodec_encode_audio(codecContext, encoder_buffer, VNC_OSD_ENCODER_BUFFER_SIZE, (const short *)chunk_buffer);
+			if ( out_size > 0 ) {
+				m_rawAudioBytes += chunk_size;
+				m_encodedAudioBytes += out_size;
+				if ( mp3File )
+					fwrite(encoder_buffer, 1, out_size, mp3File);
+				// FIXME: send out_size bytes in encoder_buffer via UDP to connected clients
+			}
+			bytes_left -= chunk_size;
+			offset += chunk_size;
 		}
+
 	}
 }
 
