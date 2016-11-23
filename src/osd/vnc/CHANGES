@@ -1,4 +1,4 @@
-v0.2, 21-NOV-2016:
+v0.2, 23-NOV-2016:
 
 - rebuilt from scratch for modern MAME's OSD interface
 - Linux only for now (a clean pkg-config environment is required)

@@ -377,6 +377,10 @@ void vnc_osd_interface::update(bool skip_redraw)
 	}
 }
 
+//============================================================
+//  find_modified_quads
+//============================================================
+
 QList<QRect> &vnc_osd_interface::find_modified_quads()
 {
 	m_modifiedQuads.clear();
@@ -386,22 +390,31 @@ QList<QRect> &vnc_osd_interface::find_modified_quads()
 			int32_t yy_quad = y_quad * VNC_OSD_UPDATE_QUAD_SIZE;
 			for (int x_quad = 0; x_quad < m_maxQuadsX; x_quad++) {
 				int32_t xx_quad = x_quad * VNC_OSD_UPDATE_QUAD_SIZE;
-				int32_t w = 1, h = 1;
 				bool modified = false;
 				for (int32_t y = yy_quad; y < yy_quad + VNC_OSD_UPDATE_QUAD_SIZE && y < rfbFrameBufferHeight; y++) {
-					h++;
-					w = 1;
 					uint32_t yy = y * rfbScanLineSize;
 					for (int32_t x = xx_quad; x < xx_quad + VNC_OSD_UPDATE_QUAD_SIZE && x < rfbFrameBufferWidth; x++) {
 						uint32_t pos = yy + x * VNC_OSD_BYTES_PER_PIXEL;
-						w++;
-						if ( !modified )
-							if ( *(int32_t *)(rfbShadowFrameBuffer + pos) != *(int32_t *)(rfbScreen->frameBuffer + pos) )
-								modified = true;
+						if ( *(int32_t *)(rfbShadowFrameBuffer + pos) != *(int32_t *)(rfbScreen->frameBuffer + pos) ) {
+							modified = true;
+							break;
+						}
 					}
+					if ( modified )
+						break;
 				}
-				if ( modified )
+				if ( modified ) {
+					int32_t w, h;
+					if ( yy_quad + VNC_OSD_UPDATE_QUAD_SIZE < rfbFrameBufferHeight )
+						h = VNC_OSD_UPDATE_QUAD_SIZE;
+					else
+						h = rfbFrameBufferHeight - yy_quad;
+					if ( xx_quad + VNC_OSD_UPDATE_QUAD_SIZE < rfbFrameBufferWidth )
+						w = VNC_OSD_UPDATE_QUAD_SIZE;
+					else
+						w = rfbFrameBufferWidth - xx_quad;
 					m_modifiedQuads << QRect(xx_quad, yy_quad, w, h);
+				}
 			}
 		}
 	} else
@@ -460,8 +473,8 @@ void vnc_osd_interface::init_audio()
 void vnc_osd_interface::update_audio_stream(const int16_t *buffer, int samples_this_frame)
 {
 	if ( m_options.sample_rate() != 0 && codecContext ) {
-		uint32_t bytes_left = samples_this_frame * 4;
-		uint32_t chunk_buffer_size = codecContext->frame_size * 4;
+		uint32_t bytes_left = samples_this_frame * sizeof(int16_t) * 2;
+		uint32_t chunk_buffer_size = codecContext->frame_size * codecContext->channels * sizeof(int16_t);
 		uint32_t offset = 0;
 		int8_t chunk_buffer[chunk_buffer_size];
 		while ( bytes_left > 0 )
