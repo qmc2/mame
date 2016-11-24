@@ -1,4 +1,4 @@
-v0.2, 23-NOV-2016:
+v0.2, 24-NOV-2016:
 
 - rebuilt from scratch for modern MAME's OSD interface
 - Linux only for now (a clean pkg-config environment is required)
@@ -6,7 +6,7 @@ v0.2, 23-NOV-2016:
   package for your Linux distribution (in case of openSUSE Tumbleweed for
   example this can be accomplished with "sudo zypper in LibVNCServer-devel")
 - WIP: audio encoding through libavcodec/libavutil (use the new option
-  'vnc_mp3write' to save audio data / the audio server part is still missing)
+  'vnc_mp2write' to save audio data / the audio server part is still missing)
 - cleaner last-60-frames statistics, now including the current audio codec's
   compression ratio
 - improved / more effective algorithm for finding and updating changed parts

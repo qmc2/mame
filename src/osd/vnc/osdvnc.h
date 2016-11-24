@@ -17,6 +17,7 @@ extern "C" {
 
 #include <QList>
 #include <QRect>
+#include <QByteArray>
 
 //============================================================
 //  TYPE DEFINITIONS
@@ -31,7 +32,8 @@ public:
 	int vnc_port() const { return int_value("vnc_port"); }
 	bool vnc_adjust_fb() const { return bool_value("vnc_adjust_fb"); }
 	bool vnc_autopause() const { return bool_value("vnc_autopause"); }
-	bool vnc_mp3write() const { return bool_value("vnc_mp3write"); }
+	bool vnc_mp2write() const { return bool_value("vnc_mp2write"); }
+	int vnc_audio_bitrate() const { return int_value("vnc_audio_bitrate"); } 
 
 private:
 	static const options_entry vnc_option_entries[];
@@ -79,6 +81,7 @@ private:
 	int32_t m_encodedAudioBytes;
 	QList<QRect> m_modifiedQuads;
 	static int32_t m_maxQuadsX, m_maxQuadsY;
+	QByteArray m_queuedAudioData;
 };
 
 //============================================================

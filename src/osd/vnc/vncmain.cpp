@@ -43,7 +43,6 @@ extern "C" {
 #define VNC_OSD_REFRESH_TIMEOUT		200000	// OSD ticks
 #define VNC_OSD_DOUBLECLICK_TIMEOUT	250000	// OSD ticks
 #define VNC_OSD_PERFINFO_FRAMES		60	// output performance-data every 60 frames
-#define VNC_OSD_ENCODER_BUFFER_SIZE	4096	// could be AVCODEC_MAX_AUDIO_FRAME_SIZE, but that's definitely too large
 #define VNC_OSD_ONE_KILOBYTE		1024.0f
 #define VNC_OSD_ONE_MEGABYTE		1048576.0f
 #define VNC_OSD_ONE_GIGABYTE		1073741824.0f
@@ -78,8 +77,7 @@ static input_device *mouse_device = 0;
 // AV codec related
 AVCodec *codec = 0;
 AVCodecContext *codecContext = 0;
-uint8_t encoder_buffer[VNC_OSD_ENCODER_BUFFER_SIZE];
-FILE *mp3File = 0;
+FILE *mp2File = 0;
 
 // RFB server related
 rfbScreenInfoPtr rfbScreen = 0;
@@ -112,7 +110,8 @@ const options_entry vnc_options::vnc_option_entries[] =
 	{ "vnc_port",		"5900",		OPTION_INTEGER,		"TCP port to listen on for incoming VNC connections (default: 5900)" },
 	{ "vnc_adjust_fb",	"1",		OPTION_BOOLEAN,		"Auto-adjust the frame-buffer width to be a multiple of 4 for best client compatibility (default: 1)" },
 	{ "vnc_autopause",	"1",		OPTION_BOOLEAN,		"Pause the machine when all clients disconnected, resume it when a client connects (default: 1)" },
-	{ "vnc_mp3write",	"0",		OPTION_BOOLEAN,		"Writes MP3 encoded audio data to 'mame_audio_stream.mp3' in the current working directory (default: 0)" },
+	{ "vnc_mp2write",	"0",		OPTION_BOOLEAN,		"Writes MP2 encoded audio data to 'mame_audio_stream.mp2' in the current working directory (default: 0)" },
+	{ "vnc_audio_bitrate",	"128000",	OPTION_INTEGER,		"Audio encoder bit rate (default: 128000)" },
 
 	// end of list
 	{ 0 }
@@ -144,8 +143,8 @@ int main(int argc, char *argv[])
 	int returnCode = frontend->execute(argc, argv);
 	
 	// clean up
-	if ( mp3File )
-		fclose(mp3File);
+	if ( mp2File )
+		fclose(mp2File);
 	if ( rfbScreen ) {
 		rfbScreenCleanup(rfbScreen);
 		free(rfbShadowFrameBuffer);
@@ -430,37 +429,35 @@ QList<QRect> &vnc_osd_interface::find_modified_quads()
 void vnc_osd_interface::init_audio()
 {
 	m_encodedAudioBytes = m_rawAudioBytes = 0;
-	avcodec_init();
 	avcodec_register_all();
-	codec = avcodec_find_encoder(CODEC_ID_MP3);
+	codec = avcodec_find_encoder(AV_CODEC_ID_MP2);
 	if ( !codec )
-		osd_printf_verbose("MP3 codec not found\n");
+		osd_printf_verbose("MP2 codec not found\n");
 	else {
-		codecContext = avcodec_alloc_context();
+		codecContext = avcodec_alloc_context3(codec);
 		if ( !codecContext )
-			osd_printf_verbose("Could not allocate MP3 codec context\n");
+			osd_printf_verbose("Could not allocate MP2 codec context\n");
 		else {
-			codecContext->codec_type = CODEC_TYPE_AUDIO;
-			codecContext->bit_rate = 64000;
+			codecContext->codec_type = AVMEDIA_TYPE_AUDIO;
+			codecContext->bit_rate = m_options.vnc_audio_bitrate();
 			codecContext->sample_rate = m_options.sample_rate();
-			//codecContext->sample_rate = 44100;
 			codecContext->channels = 2;
-			codecContext->channel_layout = CH_LAYOUT_STEREO;
+			codecContext->channel_layout = AV_CH_LAYOUT_STEREO;
 			codecContext->sample_fmt = AV_SAMPLE_FMT_S16;
 			codecContext->time_base = (AVRational){1, codecContext->sample_rate};
-			if ( avcodec_open(codecContext, codec) < 0 ) {
-				osd_printf_verbose("Could not open MP3 codec\n");
+			if ( avcodec_open2(codecContext, codec, NULL) < 0 ) {
+				osd_printf_verbose("Could not open MP2 codec\n");
 				avcodec_close(codecContext);
 				av_free(codecContext);
 				codecContext = 0;
 			} else {
-				osd_printf_verbose("MP3 codec successfully opened\n");
-				if ( m_options.vnc_mp3write() && !mp3File ) {
-					mp3File = fopen("mame_audio_stream.mp3", "w");
-					if ( mp3File )
-						osd_printf_verbose("MP3 output file successfully opened\n");
+				osd_printf_verbose("MP2 codec successfully opened\n");
+				if ( m_options.vnc_mp2write() && !mp2File ) {
+					mp2File = fopen("mame_audio_stream.mp2", "w");
+					if ( mp2File )
+						osd_printf_verbose("MP2 output file successfully opened\n");
 					else
-						osd_printf_verbose("Could not open MP3 output file\n");
+						osd_printf_verbose("Could not open MP2 output file\n");
 				}
 			}
 		}
@@ -475,27 +472,37 @@ void vnc_osd_interface::update_audio_stream(const int16_t *buffer, int samples_t
 {
 	// buffer contains 16-bit L-R stereo samples (each stereo sample is layed out as 'LLRR' - 2 bytes for the left channel's sample, then 2 bytes for the right channel's sample)
 	if ( m_options.sample_rate() != 0 && codecContext ) {
-		uint32_t bytes_left = samples_this_frame * sizeof(int16_t) * 2;
-		uint32_t chunk_buffer_size = codecContext->frame_size * codecContext->channels * sizeof(int16_t);
-		uint32_t offset = 0;
-		int8_t chunk_buffer[chunk_buffer_size];
-		while ( bytes_left > 0 )
+		uint32_t bytes_this_frame = samples_this_frame * sizeof(int16_t) * 2;
+		m_queuedAudioData.append((const char *)buffer, bytes_this_frame);
+		uint32_t buffer_size = av_samples_get_buffer_size(NULL, codecContext->channels, codecContext->frame_size, codecContext->sample_fmt, 0);
+		if ( m_queuedAudioData.size() < buffer_size )
+			return;
+		while ( m_queuedAudioData.size() > buffer_size )
 		{
-			uint32_t chunk_size = VNC_OSD_MIN(chunk_buffer_size, bytes_left);
-			memset(chunk_buffer, 0, chunk_buffer_size);
-			memcpy(chunk_buffer, buffer + offset, chunk_size);
-			int32_t out_size = avcodec_encode_audio(codecContext, encoder_buffer, VNC_OSD_ENCODER_BUFFER_SIZE, (const short *)chunk_buffer);
-			if ( out_size > 0 ) {
-				m_rawAudioBytes += chunk_size;
-				m_encodedAudioBytes += out_size;
-				if ( mp3File )
-					fwrite(encoder_buffer, 1, out_size, mp3File);
-				// FIXME: send out_size bytes in encoder_buffer via UDP to connected clients
+			AVFrame *frame = av_frame_alloc();
+			frame->nb_samples = codecContext->frame_size;
+			frame->format = codecContext->sample_fmt;
+			frame->channel_layout = codecContext->channel_layout;
+			int ret = avcodec_fill_audio_frame(frame, codecContext->channels, codecContext->sample_fmt, (const uint8_t *)m_queuedAudioData.constData(), buffer_size, 0);
+			if ( ret >= 0 ) {
+				AVPacket pkt;
+				av_init_packet(&pkt);
+				pkt.data = NULL; // set by encoder
+				pkt.size = 0;
+				int got_output = 0;
+				ret = avcodec_encode_audio2(codecContext, &pkt, frame, &got_output);
+				if ( ret >= 0 && got_output ) {
+					m_encodedAudioBytes += pkt.size;
+					if ( mp2File )
+						fwrite(pkt.data, 1, pkt.size, mp2File);
+					// FIXME: send pkt.data via UDP to connected clients
+					av_free_packet(&pkt);
+				}
 			}
-			bytes_left -= chunk_size;
-			offset += chunk_size;
+			m_queuedAudioData.remove(0, buffer_size);
+			av_frame_free(&frame);
+			m_rawAudioBytes += buffer_size;
 		}
-
 	}
 }
 
