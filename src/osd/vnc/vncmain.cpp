@@ -473,7 +473,7 @@ void vnc_osd_interface::init_audio()
 
 void vnc_osd_interface::update_audio_stream(const int16_t *buffer, int samples_this_frame)
 {
-	// buffer contains 16-bit L-R stereo samples (each stereo sample is layout as 'LLRR' - 2 bytes for the left channel sample, then 2 bytes for the right channel sample)
+	// buffer contains 16-bit L-R stereo samples (each stereo sample is layed out as 'LLRR' - 2 bytes for the left channel's sample, then 2 bytes for the right channel's sample)
 	if ( m_options.sample_rate() != 0 && codecContext ) {
 		uint32_t bytes_left = samples_this_frame * sizeof(int16_t) * 2;
 		uint32_t chunk_buffer_size = codecContext->frame_size * codecContext->channels * sizeof(int16_t);
