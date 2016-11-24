@@ -166,7 +166,8 @@ vnc_osd_interface::vnc_osd_interface(vnc_options &options) :
 	m_frameChangePercent(0.0),
 	m_frameBufferSize(0.0),
 	m_rawAudioBytes(0),
-	m_encodedAudioBytes(0)
+	m_encodedAudioBytes(0),
+	m_encoderBufferSize(0)
 {
 	// NOP
 }
@@ -451,6 +452,7 @@ void vnc_osd_interface::init_audio()
 				av_free(codecContext);
 				codecContext = 0;
 			} else {
+				m_encoderBufferSize = av_samples_get_buffer_size(NULL, codecContext->channels, codecContext->frame_size, codecContext->sample_fmt, 0);
 				osd_printf_verbose("MP2 codec successfully opened\n");
 				if ( m_options.vnc_mp2write() && !mp2File ) {
 					mp2File = fopen("mame_audio_stream.mp2", "w");
@@ -474,16 +476,15 @@ void vnc_osd_interface::update_audio_stream(const int16_t *buffer, int samples_t
 	if ( m_options.sample_rate() != 0 && codecContext ) {
 		uint32_t bytes_this_frame = samples_this_frame * sizeof(int16_t) * 2;
 		m_queuedAudioData.append((const char *)buffer, bytes_this_frame);
-		uint32_t buffer_size = av_samples_get_buffer_size(NULL, codecContext->channels, codecContext->frame_size, codecContext->sample_fmt, 0);
-		if ( m_queuedAudioData.size() < buffer_size )
+		if ( m_queuedAudioData.size() < m_encoderBufferSize )
 			return;
-		while ( m_queuedAudioData.size() > buffer_size )
+		while ( m_queuedAudioData.size() > m_encoderBufferSize )
 		{
 			AVFrame *frame = av_frame_alloc();
 			frame->nb_samples = codecContext->frame_size;
 			frame->format = codecContext->sample_fmt;
 			frame->channel_layout = codecContext->channel_layout;
-			int ret = avcodec_fill_audio_frame(frame, codecContext->channels, codecContext->sample_fmt, (const uint8_t *)m_queuedAudioData.constData(), buffer_size, 0);
+			int ret = avcodec_fill_audio_frame(frame, codecContext->channels, codecContext->sample_fmt, (const uint8_t *)m_queuedAudioData.constData(), m_encoderBufferSize, 0);
 			if ( ret >= 0 ) {
 				AVPacket pkt;
 				av_init_packet(&pkt);
@@ -499,9 +500,9 @@ void vnc_osd_interface::update_audio_stream(const int16_t *buffer, int samples_t
 					av_free_packet(&pkt);
 				}
 			}
-			m_queuedAudioData.remove(0, buffer_size);
+			m_queuedAudioData.remove(0, m_encoderBufferSize);
 			av_frame_free(&frame);
-			m_rawAudioBytes += buffer_size;
+			m_rawAudioBytes += m_encoderBufferSize;
 		}
 	}
 }

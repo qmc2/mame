@@ -82,6 +82,7 @@ private:
 	QList<QRect> m_modifiedQuads;
 	static int32_t m_maxQuadsX, m_maxQuadsY;
 	QByteArray m_queuedAudioData;
+	uint32_t m_encoderBufferSize;
 };
 
 //============================================================
