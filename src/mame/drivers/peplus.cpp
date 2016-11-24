@@ -11665,7 +11665,7 @@ Also compatible with:
 	ROM_LOAD( "capx1321.u43", 0x0000, 0x0200, CRC(4b57569f) SHA1(fa29c0f627e7ce79951ec6dadec114864144f37d) )
 ROM_END
 
-ROM_START( pex2240p ) /* Superboard : Joker Poker (X002440P+XP000038) - PSR Verified */
+ROM_START( pex2240p ) /* Superboard : Joker Poker (X002240P+XP000038) - PSR Verified */
 /*
                                        w/J     w/oJ
 PayTable   2P  3K  STR  FL  FH  4K  SF  RF  5K  RF  (Bonus)
@@ -13952,10 +13952,10 @@ GAMEL(1987, pepk0832,  pepk0810, peplus, nonplus_poker, peplus_state, nonplus,  
 GAMEL(1987, pepk0849,  pepk0810, peplus, nonplus_poker, peplus_state, nonplus,  ROT0,  "IGT - International Game Technology", "Player's Edge (PK0849-PC041) Joker Poker (Two Pair or Better)", MACHINE_NOT_WORKING, layout_pe_poker )
 GAMEL(1987, pepk0856,  pepk0810, peplus, nonplus_poker, peplus_state, nonplus,  ROT0,  "IGT - International Game Technology", "Player's Edge (PK0856-PC092) Joker Poker",                  MACHINE_NOT_WORKING, layout_pe_poker )
 GAMEL(1987, pepk0856a, pepk0810, peplus, nonplus_poker, peplus_state, nonplus,  ROT0,  "IGT - International Game Technology", "Player's Edge (PK0856-PC011) Joker Poker",                  MACHINE_NOT_WORKING, layout_pe_poker )
-GAMEL(1987, pepk0858,  0,        peplus, nonplus_poker, peplus_state, nonplus,  ROT0,  "IGT - International Game Technology", "Player's Edge (PK0858-PC075) Deuces Wild Poker (El Cortez)", MACHINE_NOT_WORKING, layout_pe_poker )
+GAMEL(1987, pepk0858,  0,        peplus, nonplus_poker, peplus_state, nonplus,  ROT0,  "IGT - International Game Technology", "Player's Edge (PK0858-PC075) Deuces Wild Poker",            MACHINE_NOT_WORKING, layout_pe_poker )
 GAMEL(1987, pepk0873,  pepk0858, peplus, nonplus_poker, peplus_state, nonplus,  ROT0,  "IGT - International Game Technology", "Player's Edge (PK0873-PC093) Deuces Wild Poker",            MACHINE_NOT_WORKING, layout_pe_poker )
 GAMEL(1987, pepk0873a, pepk0858, peplus, nonplus_poker, peplus_state, nonplus,  ROT0,  "IGT - International Game Technology", "Player's Edge (PK0873-PC046) Deuces Wild Poker",            MACHINE_NOT_WORKING, layout_pe_poker )
-GAMEL(1987, pepk0885,  pepk0858, peplus, nonplus_poker, peplus_state, nonplus,  ROT0,  "IGT - International Game Technology", "Player's Edge (PK0885-PC056) Deuces Wild Poker",            MACHINE_NOT_WORKING, layout_pe_poker )
+GAMEL(1987, pepk0885,  pepk0858, peplus, nonplus_poker, peplus_state, nonplus,  ROT0,  "IGT - International Game Technology", "Player's Edge (PK0885-PC056) Deuces Wild Poker (El Cortez)", MACHINE_NOT_WORKING, layout_pe_poker )
 GAMEL(1987, pepk0930,  pepk0858, peplus, nonplus_poker, peplus_state, nonplus,  ROT0,  "IGT - International Game Technology", "Player's Edge (PK0930-PC093) Deuces Wild Poker",            MACHINE_NOT_WORKING, layout_pe_poker )
 GAMEL(1987, pepk0930a, pepk0858, peplus, nonplus_poker, peplus_state, nonplus,  ROT0,  "IGT - International Game Technology", "Player's Edge (PK0930-PC075) Deuces Wild Poker",            MACHINE_NOT_WORKING, layout_pe_poker )
 GAMEL(1987, pepk1004,  pepk0858, peplus, nonplus_poker, peplus_state, nonplus,  ROT0,  "IGT - International Game Technology", "Player's Edge (PK1004-PC075) Deuces Wild Poker",            MACHINE_NOT_WORKING, layout_pe_poker )
