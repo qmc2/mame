@@ -447,6 +447,7 @@ void vnc_osd_interface::init_audio()
 			codecContext->channels = 2;
 			codecContext->channel_layout = CH_LAYOUT_STEREO;
 			codecContext->sample_fmt = AV_SAMPLE_FMT_S16;
+			codecContext->time_base = (AVRational){1, codecContext->sample_rate};
 			if ( avcodec_open(codecContext, codec) < 0 ) {
 				osd_printf_verbose("Could not open MP3 codec\n");
 				avcodec_close(codecContext);
@@ -472,6 +473,7 @@ void vnc_osd_interface::init_audio()
 
 void vnc_osd_interface::update_audio_stream(const int16_t *buffer, int samples_this_frame)
 {
+	// buffer contains 16-bit L-R stereo samples (each stereo sample is layout as 'LLRR' - 2 bytes for the left channel sample, then 2 bytes for the right channel sample)
 	if ( m_options.sample_rate() != 0 && codecContext ) {
 		uint32_t bytes_left = samples_this_frame * sizeof(int16_t) * 2;
 		uint32_t chunk_buffer_size = codecContext->frame_size * codecContext->channels * sizeof(int16_t);
