@@ -155,7 +155,6 @@ int main(int argc, char *argv[])
 //============================================================
 
 vnc_osd_interface::vnc_osd_interface(vnc_options &options) :
-	QObject(0),
 	osd_common_t(options),
 	m_options(options),
 	m_frameCounter(0),
@@ -464,7 +463,7 @@ void vnc_osd_interface::init_audio()
 						osd_printf_verbose("Could not open MP2 output file\n");
 				}
 				if ( !audio_server() ) {
-					m_audioServer = new AudioServerThread(this);
+					m_audioServer = new AudioServerThread;
 					audio_server()->setLocalPort(m_options.vnc_audio_port());
 					audio_server()->start();
 				}

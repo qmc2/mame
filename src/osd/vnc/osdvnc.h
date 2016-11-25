@@ -16,9 +16,8 @@ extern "C" {
 #include "modules/font/font_module.h"
 #include "audioserver.h"
 
-#include <QObject>
-#include <QString>
 #include <QByteArray>
+#include <QString>
 #include <QList>
 #include <QRect>
 
@@ -43,10 +42,8 @@ private:
 	static const options_entry vnc_option_entries[];
 };
 
-class vnc_osd_interface : public QObject, public osd_common_t
+class vnc_osd_interface : public osd_common_t
 {
-	Q_OBJECT
-
 public:
 	// construction/destruction
 	vnc_osd_interface(vnc_options &options);
