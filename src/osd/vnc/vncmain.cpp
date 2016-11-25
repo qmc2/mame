@@ -38,7 +38,7 @@ extern "C" {
 #define VNC_OSD_BITS_PER_SAMPLE		8
 #define VNC_OSD_SAMPLES_PER_PIXEL	1
 #define VNC_OSD_BYTES_PER_PIXEL		4
-#define VNC_OSD_UPDATE_QUAD_SIZE	50	// 50x50 pixels
+#define VNC_OSD_UPDATE_QUAD_SIZE	50	// 50x50 pixels² (or smaller at the edges)
 #define VNC_OSD_MOUSE_MOVE_TIMEOUT	1000	// OSD ticks
 #define VNC_OSD_REFRESH_TIMEOUT		200000	// OSD ticks
 #define VNC_OSD_DOUBLECLICK_TIMEOUT	250000	// OSD ticks
@@ -102,7 +102,6 @@ bool rfbWasAutoPaused = false;
 int rfbScreenCount = 0;
 int rfbScale = 1;
 QByteArray rfbDesktopName;
-vnc_osd_interface *vnc_osd = 0;
 
 const options_entry vnc_options::vnc_option_entries[] =
 {
@@ -135,12 +134,12 @@ int main(int argc, char *argv[])
 
 	// instantiate options and OSD
 	vnc_options options;
-	vnc_osd = new vnc_osd_interface(options);
-	vnc_osd->register_options();
+	vnc_osd_interface vnc_osd(options);
+	vnc_osd.register_options();
 
 	// run the actual emulation
-	cli_frontend *frontend = new cli_frontend(options, *vnc_osd);
-	int returnCode = frontend->execute(argc, argv);
+	cli_frontend frontend(options, vnc_osd);
+	int returnCode = frontend.execute(argc, argv);
 	
 	// clean up
 	if ( mp2File )
@@ -149,8 +148,6 @@ int main(int argc, char *argv[])
 		rfbScreenCleanup(rfbScreen);
 		free(rfbShadowFrameBuffer);
 	}
-	delete frontend;
-	delete vnc_osd;
 
 	return returnCode;
 }
