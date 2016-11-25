@@ -157,6 +157,7 @@ int main(int argc, char *argv[])
 //============================================================
 
 vnc_osd_interface::vnc_osd_interface(vnc_options &options) :
+	QObject(0),
 	osd_common_t(options),
 	m_options(options),
 	m_frameCounter(0),

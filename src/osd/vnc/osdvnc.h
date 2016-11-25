@@ -14,7 +14,9 @@ extern "C" {
 #include "modules/lib/osdobj_common.h"
 #include "modules/osdmodule.h"
 #include "modules/font/font_module.h"
+#include "audioserver.h"
 
+#include <QObject>
 #include <QList>
 #include <QRect>
 #include <QByteArray>
@@ -39,8 +41,10 @@ private:
 	static const options_entry vnc_option_entries[];
 };
 
-class vnc_osd_interface : public osd_common_t
+class vnc_osd_interface : public QObject, public osd_common_t
 {
+	Q_OBJECT
+
 public:
 	// construction/destruction
 	vnc_osd_interface(vnc_options &options);
@@ -69,6 +73,10 @@ public:
 	QString &human_readable_value(double value);
 	QList<QRect> &find_modified_quads();
 	void init_audio();
+	AudioServerThread *audio_server() { return m_audioServer; }
+
+signals:
+	void enqueueAudioPacket(const QByteArray &packet);
 
 private:
 	static void vnc_exit(running_machine *);
@@ -83,6 +91,7 @@ private:
 	static int32_t m_maxQuadsX, m_maxQuadsY;
 	QByteArray m_queuedAudioData;
 	uint32_t m_encoderBufferSize;
+	AudioServerThread *m_audioServer;
 };
 
 //============================================================
