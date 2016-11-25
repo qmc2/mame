@@ -220,6 +220,7 @@ void vnc_osd_interface::init(running_machine &machine)
 		rfbAdjustFB = options.vnc_adjust_fb();
 		rfbAutoPause = options.vnc_autopause();
 		rfbScale = VNC_OSD_MAX(1, options.prescale());
+		rfbShadowValid = false;
 	}
 
 	// initialize the video system by allocating a rendering target and setting a view
