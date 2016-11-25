@@ -1,6 +1,5 @@
-#include <QDateTime>
-#include "audioserver.h"
 #include "emu.h"
+#include "audioserver.h"
 
 AudioServerThread::AudioServerThread(QObject *parent) :
 	QThread(parent),
@@ -22,17 +21,17 @@ AudioServerThread::~AudioServerThread()
 bool AudioServerThread::bindToLocalPort()
 {
 	if ( socket()->bind(localAddress(), localPort()) ) {
-		osd_printf_verbose("Audio: server socket bound to address %s / port %d\n", localAddress().toString().toLocal8Bit().constData(), localPort());
+		osd_printf_verbose("Audio: Server socket bound to address %s / port %d\n", localAddress().toString().toLocal8Bit().constData(), localPort());
 		return true;
 	} else {
-		osd_printf_verbose("Audio: couldn't bind server socket to address %s / port %d: %s\n", localAddress().toString().toLocal8Bit().constData(), localPort(), socket()->errorString().toLower().toLocal8Bit().constData());
+		osd_printf_verbose("Audio: Couldn't bind server socket to address %s / port %d: %s\n", localAddress().toString().toLocal8Bit().constData(), localPort(), socket()->errorString().toLower().toLocal8Bit().constData());
 		return false;
 	}
 }
 
 void AudioServerThread::error(QAbstractSocket::SocketError)
 {
-	osd_printf_verbose("Audio: socket error: %s\n", socket()->errorString().toLower().toLocal8Bit().constData());
+	osd_printf_verbose("Audio: Socket error: %s\n", socket()->errorString().toLower().toLocal8Bit().constData());
 }
 
 void AudioServerThread::sendDatagram(const QByteArray &datagram)

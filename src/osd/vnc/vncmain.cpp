@@ -1,11 +1,8 @@
 // license:BSD-3-Clause
 // copyright-holders:MAMEdev Team
 
-#include <QByteArray>
-#include <QHostInfo>
-#include <QString>
 #include <QLocale>
-#include <QPoint>
+#include <QHostInfo>
 
 #include <string.h>
 #include <unistd.h>
@@ -165,7 +162,8 @@ vnc_osd_interface::vnc_osd_interface(vnc_options &options) :
 	m_frameBufferSize(0.0),
 	m_rawAudioBytes(0),
 	m_encodedAudioBytes(0),
-	m_encoderBufferSize(0)
+	m_encoderBufferSize(0),
+	m_audioServer(0)
 {
 	// NOP
 }
@@ -176,7 +174,11 @@ vnc_osd_interface::vnc_osd_interface(vnc_options &options) :
 
 vnc_osd_interface::~vnc_osd_interface()
 {
-	// NOP
+	if ( audio_server() ) {
+		audio_server()->exitThread();
+		audio_server()->wait();
+		delete audio_server();
+	}
 }
 
 //============================================================
@@ -459,6 +461,10 @@ void vnc_osd_interface::init_audio()
 						osd_printf_verbose("MP2 output file successfully opened\n");
 					else
 						osd_printf_verbose("Could not open MP2 output file\n");
+				}
+				if ( !audio_server() ) {
+					m_audioServer = new AudioServerThread(this);
+					audio_server()->start();
 				}
 			}
 		}

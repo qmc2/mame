@@ -42,10 +42,6 @@ public slots:
 	void sendQueuedDatagrams();
 	void enqueueDatagram(const QByteArray &datagram);
 
-signals:
-	void log(const QString &message);
-	void datagramReceived();
-
 protected:
 	void run();
 

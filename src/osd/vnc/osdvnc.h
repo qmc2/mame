@@ -17,9 +17,10 @@ extern "C" {
 #include "audioserver.h"
 
 #include <QObject>
+#include <QString>
+#include <QByteArray>
 #include <QList>
 #include <QRect>
-#include <QByteArray>
 
 //============================================================
 //  TYPE DEFINITIONS
