@@ -392,13 +392,13 @@ QList<QRect> &vnc_osd_interface::find_modified_quads()
 				int32_t xx_quad = x_quad * VNC_OSD_UPDATE_QUAD_SIZE;
 				bool modified = false;
 				for (int32_t y = yy_quad; y < yy_quad + VNC_OSD_UPDATE_QUAD_SIZE && y < rfbFrameBufferHeight; y++) {
-					int32_t yy = y * rfbScanLineSize;
+					int32_t pos = y * rfbScanLineSize + xx_quad * VNC_OSD_BYTES_PER_PIXEL;
 					for (int32_t x = xx_quad; x < xx_quad + VNC_OSD_UPDATE_QUAD_SIZE && x < rfbFrameBufferWidth; x++) {
-						int32_t pos = yy + x * VNC_OSD_BYTES_PER_PIXEL;
 						if ( *(int32_t *)(rfbShadowFrameBuffer + pos) != *(int32_t *)(rfbScreen->frameBuffer + pos) ) {
 							modified = true;
 							break;
 						}
+						pos += VNC_OSD_BYTES_PER_PIXEL;
 					}
 					if ( modified )
 						break;
