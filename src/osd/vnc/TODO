@@ -1,2 +1,3 @@
 - WIP: Adding support for a VNC OSD specific audio protocol
+- Audio: Create a VNC OSD sound module and take throttle/fast-forward into account
 - Add support for *multiple* virtual keyboards/mice (one per client)
