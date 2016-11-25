@@ -597,17 +597,18 @@ void vnc_osd_interface::rfbNewFrameBuffer(int width, int height)
 	memset(newFB, 0, newBufferSize);
 	memset(newShadowFB, 0, newBufferSize);
 	rfbNewFramebuffer(rfbScreen, newFB, width, height, VNC_OSD_BITS_PER_SAMPLE, VNC_OSD_SAMPLES_PER_PIXEL, VNC_OSD_BYTES_PER_PIXEL);
+	rfbLog("New frame buffer dimensions: %dx%d\n", width, height);
 	rfbShadowFrameBuffer = newShadowFB;
 	rfbShadowValid = false;
 	free(oldFB);
 	free(oldShadowFB);
 
 	// pre-calc checkerboard dimensions
-	m_maxQuadsX = rfbFrameBufferWidth / VNC_OSD_UPDATE_QUAD_SIZE;
-	if ( rfbFrameBufferWidth % VNC_OSD_UPDATE_QUAD_SIZE > 0 )
+	m_maxQuadsX = width / VNC_OSD_UPDATE_QUAD_SIZE;
+	if ( width % VNC_OSD_UPDATE_QUAD_SIZE > 0 )
 		m_maxQuadsX++;
-	m_maxQuadsY = rfbFrameBufferHeight / VNC_OSD_UPDATE_QUAD_SIZE;
-	if ( rfbFrameBufferHeight % VNC_OSD_UPDATE_QUAD_SIZE > 0 )
+	m_maxQuadsY = height / VNC_OSD_UPDATE_QUAD_SIZE;
+	if ( height % VNC_OSD_UPDATE_QUAD_SIZE > 0 )
 		m_maxQuadsY++;
 }
 
