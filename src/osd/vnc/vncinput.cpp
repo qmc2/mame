@@ -245,7 +245,6 @@ void vnc_input_init_keyboard(input_device *kb)
 	kb->add_item("CloseBrace", ITEM_ID_CLOSEBRACE, vnc_input_get_key_state, &keyboard_state[VNC_OSD_KEY_CLOSEBRACE]);
 	kb->add_item("Equals", ITEM_ID_EQUALS, vnc_input_get_key_state, &keyboard_state[VNC_OSD_KEY_EQUALS]);
 	kb->add_item("Question", VNC_OSD_GEN_ITEM_ID, vnc_input_get_key_state, &keyboard_state[VNC_OSD_KEY_QUESTION]);
-
 	kb->add_item("Colon", ITEM_ID_COLON, vnc_input_get_key_state, &keyboard_state[VNC_OSD_KEY_COLON]);
 	kb->add_item("Tilde", ITEM_ID_TILDE, vnc_input_get_key_state, &keyboard_state[VNC_OSD_KEY_TILDE]);
 	kb->add_item("BackSlash", ITEM_ID_BACKSLASH, vnc_input_get_key_state, &keyboard_state[VNC_OSD_KEY_BACKSLASH]);
