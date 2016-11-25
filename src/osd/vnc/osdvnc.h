@@ -37,6 +37,7 @@ public:
 	bool vnc_autopause() const { return bool_value("vnc_autopause"); }
 	bool vnc_mp2write() const { return bool_value("vnc_mp2write"); }
 	int vnc_audio_bitrate() const { return int_value("vnc_audio_bitrate"); } 
+	int vnc_audio_port() const { return int_value("vnc_audio_port"); } 
 
 private:
 	static const options_entry vnc_option_entries[];
