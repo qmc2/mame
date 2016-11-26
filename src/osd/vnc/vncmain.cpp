@@ -290,15 +290,15 @@ void vnc_osd_interface::vnc_exit(running_machine *)
 void vnc_osd_interface::update(bool skip_redraw)
 {
 	// get the minimum width/height for the current layout and make that the (scaled) size of our target
-	vnc_render_target->compute_minimum_size(rfbFrameBufferWidth, rfbFrameBufferHeight);
-	rfbFrameBufferWidth *= rfbScale; rfbFrameBufferHeight *= rfbScale;
-	if ( rfbFrameBufferWidth > rfbFrameBufferHeight ) {
-		int32_t temp = rfbFrameBufferWidth;
-		rfbFrameBufferWidth = rfbFrameBufferHeight;
-		rfbFrameBufferHeight = temp;
-	}
-	float aspect = rfbFrameBufferHeight / ((rfbScreenCount > 0 ? rfbScreenCount : 1) * rfbFrameBufferWidth);
-	vnc_render_target->compute_visible_area(rfbFrameBufferWidth, rfbFrameBufferHeight, aspect, vnc_render_target->orientation(), rfbFrameBufferWidth, rfbFrameBufferHeight);
+	int32_t tempwidth, tempheight;
+	vnc_render_target->compute_minimum_size(tempwidth, tempheight);
+	tempwidth *= rfbScale; tempheight *= rfbScale;
+	float aspect;
+	if ( tempwidth > tempheight )
+		aspect = tempwidth / tempheight;
+	else
+		aspect = float(tempwidth) / float(tempheight);
+	vnc_render_target->compute_visible_area(tempwidth, tempheight, aspect, vnc_render_target->orientation(), rfbFrameBufferWidth, rfbFrameBufferHeight);
 	vnc_render_target->set_bounds(rfbFrameBufferWidth, rfbFrameBufferHeight, aspect);
 
 	// some RFB clients have problems when the frame-buffer width is not a multiple of 4
