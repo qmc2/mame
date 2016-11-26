@@ -297,8 +297,9 @@ void vnc_osd_interface::update(bool skip_redraw)
 		rfbFrameBufferWidth = rfbFrameBufferHeight;
 		rfbFrameBufferHeight = temp;
 	}
-	vnc_render_target->compute_visible_area(rfbFrameBufferWidth, rfbFrameBufferHeight, rfbFrameBufferHeight / ((rfbScreenCount > 0 ? rfbScreenCount : 1) * rfbFrameBufferWidth), vnc_render_target->orientation(), rfbFrameBufferWidth, rfbFrameBufferHeight);
-	vnc_render_target->set_bounds(rfbFrameBufferWidth, rfbFrameBufferHeight);
+	float aspect = rfbFrameBufferHeight / ((rfbScreenCount > 0 ? rfbScreenCount : 1) * rfbFrameBufferWidth);
+	vnc_render_target->compute_visible_area(rfbFrameBufferWidth, rfbFrameBufferHeight, aspect, vnc_render_target->orientation(), rfbFrameBufferWidth, rfbFrameBufferHeight);
+	vnc_render_target->set_bounds(rfbFrameBufferWidth, rfbFrameBufferHeight, aspect);
 
 	// some RFB clients have problems when the frame-buffer width is not a multiple of 4
 	if ( rfbAdjustFB && (rfbFrameBufferWidth & 3) )
@@ -434,11 +435,11 @@ void vnc_osd_interface::init_audio()
 	avcodec_register_all();
 	codec = avcodec_find_encoder(AV_CODEC_ID_MP2);
 	if ( !codec )
-		osd_printf_verbose("MP2 codec not found\n");
+		osd_printf_verbose("Audio: MP2 codec not found\n");
 	else {
 		codecContext = avcodec_alloc_context3(codec);
 		if ( !codecContext )
-			osd_printf_verbose("Could not allocate MP2 codec context\n");
+			osd_printf_verbose("Audio: Could not allocate MP2 codec context\n");
 		else {
 			codecContext->codec_type = AVMEDIA_TYPE_AUDIO;
 			codecContext->bit_rate = m_options.vnc_audio_bitrate();
@@ -448,19 +449,19 @@ void vnc_osd_interface::init_audio()
 			codecContext->sample_fmt = AV_SAMPLE_FMT_S16;
 			codecContext->time_base = (AVRational){1, codecContext->sample_rate};
 			if ( avcodec_open2(codecContext, codec, NULL) < 0 ) {
-				osd_printf_verbose("Could not open MP2 codec\n");
+				osd_printf_verbose("Audio: Could not open MP2 codec\n");
 				avcodec_close(codecContext);
 				av_free(codecContext);
 				codecContext = 0;
 			} else {
 				m_encoderBufferSize = av_samples_get_buffer_size(NULL, codecContext->channels, codecContext->frame_size, codecContext->sample_fmt, 0);
-				osd_printf_verbose("MP2 codec successfully opened\n");
+				osd_printf_verbose("Audio: MP2 codec successfully opened\n");
 				if ( m_options.vnc_mp2write() && !mp2File ) {
 					mp2File = fopen("mame_audio_stream.mp2", "w");
 					if ( mp2File )
-						osd_printf_verbose("MP2 output file successfully opened\n");
+						osd_printf_verbose("Audio: MP2 output file successfully opened\n");
 					else
-						osd_printf_verbose("Could not open MP2 output file\n");
+						osd_printf_verbose("Audio: Could not open MP2 output file\n");
 				}
 				if ( !audio_server() ) {
 					m_audioServer = new AudioServerThread;
@@ -478,6 +479,8 @@ void vnc_osd_interface::init_audio()
 
 void vnc_osd_interface::update_audio_stream(const int16_t *buffer, int samples_this_frame)
 {
+	// FIXME: honor current throttle state (m_machine.video().throttled())
+
 	// buffer contains 16-bit L-R stereo samples (each stereo sample is layed out as 'LLRR' - 2 bytes for the left channel's sample, then 2 bytes for the right channel's sample)
 	if ( m_options.sample_rate() != 0 && codecContext ) {
 		uint32_t bytes_this_frame = samples_this_frame * sizeof(int16_t) * 2;
@@ -603,7 +606,7 @@ void vnc_osd_interface::rfbNewFrameBuffer(int width, int height)
 	free(oldFB);
 	free(oldShadowFB);
 
-	// pre-calc checkerboard dimensions
+	// pre-calculate the checkerboard dimensions
 	m_maxQuadsX = width / VNC_OSD_UPDATE_QUAD_SIZE;
 	if ( width % VNC_OSD_UPDATE_QUAD_SIZE > 0 )
 		m_maxQuadsX++;
