@@ -11,6 +11,9 @@
 #include <QQueue>
 #include <QMutex>
 
+#define VNC_OSD_AUDIO_DEFAULT_PORT				6900
+#define VNC_OSD_AUDIO_DEFAULT_MAX_CONNECTIONS			32
+
 #define VNC_OSD_AUDIO_COMMAND_IDX_CONNECT_TO_STREAM		0
 #define VNC_OSD_AUDIO_COMMAND_IDX_DISCONNECT_FROM_STREAM	1
 
@@ -31,7 +34,7 @@ public:
 class AudioServerThread : public QThread
 {
 public:
-	explicit AudioServerThread(int localPort = 6900, QObject *parent = 0);
+	explicit AudioServerThread(int localPort = VNC_OSD_AUDIO_DEFAULT_PORT, int maxConnections = VNC_OSD_AUDIO_DEFAULT_MAX_CONNECTIONS, QObject *parent = 0);
 	~AudioServerThread();
 
 	QUdpSocket *socket() { return m_socket; }
@@ -40,6 +43,8 @@ public:
 	void setLocalAddress(const QHostAddress &localAddress) { m_localAddress = localAddress; }
 	int localPort() { return m_localPort; }
 	void setLocalPort(int localPort) { m_localPort = localPort; }
+	int maxConnections() { return m_maxConnections; }
+	void setMaxConnections(int maxConnections) { m_maxConnections = maxConnections; }
 	void sendDatagram(const QByteArray &datagram);
 	QHash<QString, UdpConnection> &connections() { return m_connections; }
 	bool bindToLocalPort();
@@ -55,6 +60,7 @@ private:
 	QUdpSocket *m_socket;
 	QHostAddress m_localAddress;
 	int m_localPort;
+	int m_maxConnections;
 	bool m_exit;
 	QHash<QString, UdpConnection> m_connections;
 	QQueue<QByteArray> m_sendQueue;

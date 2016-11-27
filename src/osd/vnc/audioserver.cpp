@@ -3,11 +3,12 @@
 
 #define clientId(peer, port)		QString("%1:%2").arg(peer.toString()).arg(port)
 
-AudioServerThread::AudioServerThread(int localPort, QObject *parent) :
+AudioServerThread::AudioServerThread(int localPort, int maxConnections, QObject *parent) :
 	QThread(parent),
 	m_socket(0),
 	m_localAddress(QHostAddress::Any),
 	m_localPort(localPort),
+	m_maxConnections(maxConnections),
 	m_exit(false)
 {
 	m_clientCommands << VNC_OSD_AUDIO_COMMAND_STR_CONNECT_TO_STREAM << VNC_OSD_AUDIO_COMMAND_STR_DISCONNECT_FROM_STREAM;
@@ -49,8 +50,11 @@ void AudioServerThread::processDatagram(const QByteArray &datagram, const QHostA
 	switch ( m_clientCommands.indexOf(datagram) ) {
 		case VNC_OSD_AUDIO_COMMAND_IDX_CONNECT_TO_STREAM:
 			if ( !connections().contains(id) ) {
-				osd_printf_verbose("Audio Server: Connect from client at address %s / port %d\n", peer.toString().toLocal8Bit().constData(), peerPort);
-				connections().insert(id, UdpConnection(peer, peerPort));
+				if ( connections().count() < maxConnections() ) {
+					osd_printf_verbose("Audio Server: Connect from client at address %s / port %d\n", peer.toString().toLocal8Bit().constData(), peerPort);
+					connections().insert(id, UdpConnection(peer, peerPort));
+				} else
+					osd_printf_verbose("Audio Server: Connect from client at address %s / port %d ignored, maximum number of connections (%d) reached\n", peer.toString().toLocal8Bit().constData(), peerPort, maxConnections());
 			}
 			break;
 		case VNC_OSD_AUDIO_COMMAND_IDX_DISCONNECT_FROM_STREAM:
