@@ -175,8 +175,7 @@ vnc_osd_interface::vnc_osd_interface(vnc_options &options) :
 vnc_osd_interface::~vnc_osd_interface()
 {
 	if ( audio_server() ) {
-		audio_server()->exitThread();
-		audio_server()->wait();
+		audio_server()->exit();
 		delete audio_server();
 	}
 }
@@ -464,8 +463,7 @@ void vnc_osd_interface::init_audio()
 						osd_printf_verbose("Audio: Could not open MP2 output file\n");
 				}
 				if ( !audio_server() ) {
-					m_audioServer = new AudioServerThread;
-					audio_server()->setLocalPort(m_options.vnc_audio_port());
+					m_audioServer = new AudioServerThread(m_options.vnc_audio_port());
 					audio_server()->start();
 				}
 			}
@@ -505,7 +503,7 @@ void vnc_osd_interface::update_audio_stream(const int16_t *buffer, int samples_t
 					m_encodedAudioBytes += pkt.size;
 					if ( mp2File )
 						fwrite(pkt.data, 1, pkt.size, mp2File);
-					// FIXME: send pkt.data via UDP to connected clients
+					audio_server()->enqueueDatagram(QByteArray((const char *)pkt.data, pkt.size));
 					av_free_packet(&pkt);
 				}
 			}

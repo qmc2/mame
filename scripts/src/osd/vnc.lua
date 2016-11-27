@@ -127,11 +127,6 @@ project ("osd_" .. _OPTIONS["osd"])
 		MAME_DIR .. "src/osd/vnc/keysym2ucs.cpp",
 		MAME_DIR .. "src/osd/vnc/audioserver.h",
 		MAME_DIR .. "src/osd/vnc/audioserver.cpp",
-		GEN_DIR  .. "src/osd/vnc/audioserver.moc.cpp",
-	}
-
-	custombuildtask {
-		{ MAME_DIR .. "src/osd/vnc/audioserver.h", GEN_DIR  .. "src/osd/vnc/audioserver.moc.cpp", { }, { MOC .. "$(MOCINCPATH) $(<) -o $(@)" }},
 	}
 
 BASE_TARGETOS = "unix"

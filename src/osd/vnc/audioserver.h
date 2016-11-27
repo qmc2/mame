@@ -1,11 +1,21 @@
 #ifndef AUDIOSERVER_H
 #define AUDIOSERVER_H
 
+#include <QString>
+#include <QStringList>
+#include <QByteArray>
 #include <QThread>
 #include <QUdpSocket>
 #include <QHostAddress>
 #include <QHash>
 #include <QQueue>
+#include <QMutex>
+
+#define VNC_OSD_AUDIO_COMMAND_IDX_CONNECT_TO_STREAM		0
+#define VNC_OSD_AUDIO_COMMAND_IDX_DISCONNECT_FROM_STREAM	1
+
+#define VNC_OSD_AUDIO_COMMAND_STR_CONNECT_TO_STREAM		"VNC_OSD_AUDIO_CONNECT_TO_STREAM"
+#define VNC_OSD_AUDIO_COMMAND_STR_DISCONNECT_FROM_STREAM	"VNC_OSD_AUDIO_DISCONNECT_FROM_STREAM"
 
 class UdpConnection
 {
@@ -20,10 +30,8 @@ public:
 
 class AudioServerThread : public QThread
 {
-	Q_OBJECT
-
 public:
-	explicit AudioServerThread(QObject *parent = 0);
+	explicit AudioServerThread(int localPort = 6900, QObject *parent = 0);
 	~AudioServerThread();
 
 	QUdpSocket *socket() { return m_socket; }
@@ -32,15 +40,13 @@ public:
 	void setLocalAddress(const QHostAddress &localAddress) { m_localAddress = localAddress; }
 	int localPort() { return m_localPort; }
 	void setLocalPort(int localPort) { m_localPort = localPort; }
-	void exitThread() { m_exit = true; }
 	void sendDatagram(const QByteArray &datagram);
-	QHash<QByteArray, UdpConnection> &connections() { return m_connections; }
+	QHash<QString, UdpConnection> &connections() { return m_connections; }
 	bool bindToLocalPort();
-
-public slots:
-	void error(QAbstractSocket::SocketError);
+	void processDatagram(const QByteArray &datagram, const QHostAddress &peer, quint16 peerPort);
 	void sendQueuedDatagrams();
 	void enqueueDatagram(const QByteArray &datagram);
+	void readPendingDatagrams();
 
 protected:
 	void run();
@@ -50,8 +56,10 @@ private:
 	QHostAddress m_localAddress;
 	int m_localPort;
 	bool m_exit;
-	QHash<QByteArray, UdpConnection> m_connections;
+	QHash<QString, UdpConnection> m_connections;
 	QQueue<QByteArray> m_sendQueue;
+	QStringList m_clientCommands;
+	QMutex m_sendQueueMutex;
 };
 
 #endif // AUDIOSERVER_H

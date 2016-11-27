@@ -1,67 +1,106 @@
 #include "emu.h"
 #include "audioserver.h"
 
-AudioServerThread::AudioServerThread(QObject *parent) :
+#define clientId(peer, port)		QString("%1:%2").arg(peer.toString()).arg(port)
+
+AudioServerThread::AudioServerThread(int localPort, QObject *parent) :
 	QThread(parent),
 	m_socket(0),
 	m_localAddress(QHostAddress::Any),
-	m_localPort(6900), // FIXME
+	m_localPort(localPort),
 	m_exit(false)
 {
-	qRegisterMetaType<QAbstractSocket::SocketError>();
+	m_clientCommands << VNC_OSD_AUDIO_COMMAND_STR_CONNECT_TO_STREAM << VNC_OSD_AUDIO_COMMAND_STR_DISCONNECT_FROM_STREAM;
 	start();
 }
 
 AudioServerThread::~AudioServerThread()
 {
-	exitThread();
+	m_exit = true;
 	wait();
 }
 
 bool AudioServerThread::bindToLocalPort()
 {
 	if ( socket()->bind(localAddress(), localPort()) ) {
-		osd_printf_verbose("Audio: Server socket bound to address %s / port %d\n", localAddress().toString().toLocal8Bit().constData(), localPort());
+		osd_printf_verbose("Audio Server: Socket bound to address %s / port %d\n", localAddress().toString().toLocal8Bit().constData(), localPort());
 		return true;
 	} else {
-		osd_printf_verbose("Audio: Couldn't bind server socket to address %s / port %d: %s\n", localAddress().toString().toLocal8Bit().constData(), localPort(), socket()->errorString().toLower().toLocal8Bit().constData());
+		osd_printf_verbose("Audio Server: Couldn't bind server socket to address %s / port %d: %s\n", localAddress().toString().toLocal8Bit().constData(), localPort(), socket()->errorString().toLower().toLocal8Bit().constData());
 		return false;
 	}
 }
 
-void AudioServerThread::error(QAbstractSocket::SocketError)
+void AudioServerThread::readPendingDatagrams()
 {
-	osd_printf_verbose("Audio: Socket error: %s\n", socket()->errorString().toLower().toLocal8Bit().constData());
+	while ( socket()->hasPendingDatagrams() ) {
+		QByteArray datagram;
+		datagram.resize(socket()->pendingDatagramSize());
+		QHostAddress peer;
+		quint16 peerPort; 
+		socket()->readDatagram(datagram.data(), datagram.size(), &peer, &peerPort);
+	        processDatagram(datagram, peer, peerPort);
+	}
+}
+
+void AudioServerThread::processDatagram(const QByteArray &datagram, const QHostAddress &peer, quint16 peerPort)
+{
+	QString id(clientId(peer, peerPort));
+	switch ( m_clientCommands.indexOf(datagram) ) {
+		case VNC_OSD_AUDIO_COMMAND_IDX_CONNECT_TO_STREAM:
+			if ( !connections().contains(id) ) {
+				osd_printf_verbose("Audio Server: Connect from client at address %s / port %d\n", peer.toString().toLocal8Bit().constData(), peerPort);
+				connections().insert(id, UdpConnection(peer, peerPort));
+			}
+			break;
+		case VNC_OSD_AUDIO_COMMAND_IDX_DISCONNECT_FROM_STREAM:
+			if ( connections().contains(id) ) {
+				osd_printf_verbose("Audio Server: Disconnect from client at address %s / port %d\n", peer.toString().toLocal8Bit().constData(), peerPort);
+				connections().remove(id);
+			}
+			break;
+		default:
+			osd_printf_verbose("Audio Server: Unknown command received from %s client at address %s / port %d: '%s'\n", connections().contains(id) ? "connected" : "not connected", peer.toString().toLocal8Bit().constData(), peerPort, datagram.constData());
+			break;
+	}
 }
 
 void AudioServerThread::sendDatagram(const QByteArray &datagram)
 {
-	QHashIterator<QByteArray, UdpConnection> iter(connections());
+	QHashIterator<QString, UdpConnection> iter(connections());
 	while ( iter.hasNext() ) {
 		iter.next();
-		socket()->writeDatagram(datagram, iter.value().address, iter.value().port);
+		if ( socket()->writeDatagram(datagram, iter.value().address, iter.value().port) < 0 ) {
+			osd_printf_verbose("Audio Server: Failed sending datagram to address %s / port %d\n", iter.value().address.toString().toLocal8Bit().constData(), iter.value().port);
+			connections().remove(clientId(iter.value().address, iter.value().port)); // no longer send to it, client has to reconnect
+		}
 	}
 }
 
 void AudioServerThread::enqueueDatagram(const QByteArray &datagram)
 {
+	m_sendQueueMutex.lock();
 	m_sendQueue.enqueue(datagram);
+	m_sendQueueMutex.unlock();
 }
 
 void AudioServerThread::sendQueuedDatagrams()
 {
-	while ( !m_exit && !m_sendQueue.isEmpty() )
-		sendDatagram(m_sendQueue.dequeue());
+	if ( m_sendQueueMutex.tryLock(0) ) {
+		while ( !m_sendQueue.isEmpty() )
+			sendDatagram(m_sendQueue.dequeue());
+		m_sendQueueMutex.unlock();
+	}
 }
 
 void AudioServerThread::run()
 {
-	setSocket(new QUdpSocket(0));
-	connect(socket(), SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(error(QAbstractSocket::SocketError)));
+	setSocket(new QUdpSocket);
 	if ( bindToLocalPort() ) {
 		while ( !m_exit ) {
+			readPendingDatagrams();
 			sendQueuedDatagrams();
-			QThread::msleep(1);
+			msleep(1);
 		}
 	}
 	delete socket();
