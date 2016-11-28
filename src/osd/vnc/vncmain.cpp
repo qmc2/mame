@@ -477,8 +477,6 @@ void vnc_osd_interface::init_audio()
 
 void vnc_osd_interface::update_audio_stream(const int16_t *buffer, int samples_this_frame)
 {
-	// FIXME: honor current throttle state (m_machine.video().throttled())
-
 	// buffer contains 16-bit L-R stereo samples (each stereo sample is layed out as 'LLRR' - 2 bytes for the left channel's sample, then 2 bytes for the right channel's sample)
 	if ( m_options.sample_rate() != 0 && codecContext ) {
 		uint32_t bytes_this_frame = samples_this_frame * sizeof(int16_t) * 2;
@@ -503,7 +501,8 @@ void vnc_osd_interface::update_audio_stream(const int16_t *buffer, int samples_t
 					m_encodedAudioBytes += pkt.size;
 					if ( mp2File )
 						fwrite(pkt.data, 1, pkt.size, mp2File);
-					audio_server()->enqueueDatagram(QByteArray((const char *)pkt.data, pkt.size));
+					if ( m_machine->video().throttled() && !m_machine->video().fastforward() )
+						audio_server()->enqueueDatagram(QByteArray((const char *)pkt.data, pkt.size));
 					av_free_packet(&pkt);
 				}
 			}
