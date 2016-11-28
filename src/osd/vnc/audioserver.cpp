@@ -51,10 +51,10 @@ void AudioServerThread::processDatagram(const QByteArray &datagram, const QHostA
 		case VNC_OSD_AUDIO_COMMAND_IDX_CONNECT_TO_STREAM:
 			if ( !connections().contains(id) ) {
 				if ( connections().count() < maxConnections() ) {
-					osd_printf_verbose("Audio Server: Connect from client at address %s / port %d\n", peer.toString().toLocal8Bit().constData(), peerPort);
+					osd_printf_verbose("Audio Server: Connect from client at address %s / port %d - accepted\n", peer.toString().toLocal8Bit().constData(), peerPort);
 					connections().insert(id, UdpConnection(peer, peerPort));
 				} else
-					osd_printf_verbose("Audio Server: Connect from client at address %s / port %d ignored, maximum number of connections (%d) reached\n", peer.toString().toLocal8Bit().constData(), peerPort, maxConnections());
+					osd_printf_verbose("Audio Server: Connect from client at address %s / port %d - rejected (maximum number of connections reached)\n", peer.toString().toLocal8Bit().constData(), peerPort);
 			}
 			break;
 		case VNC_OSD_AUDIO_COMMAND_IDX_DISCONNECT_FROM_STREAM:
