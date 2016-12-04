@@ -276,12 +276,14 @@ static MACHINE_CONFIG_START( rpc86, isbc_state )
 	MCFG_I8251_DTR_HANDLER(DEVWRITELINE("rs232", rs232_port_device, write_dtr))
 	MCFG_I8251_RTS_HANDLER(DEVWRITELINE("rs232", rs232_port_device, write_rts))
 	MCFG_I8251_RXRDY_HANDLER(DEVWRITELINE("pic_0", pic8259_device, ir6_w))
+	MCFG_I8251_TXRDY_HANDLER(DEVWRITELINE("pic_0", pic8259_device, ir7_w))
 
 	/* video hardware */
 	MCFG_RS232_PORT_ADD("rs232", default_rs232_devices, "terminal")
 	MCFG_RS232_RXD_HANDLER(DEVWRITELINE("uart8251", i8251_device, write_rxd))
 	//MCFG_RS232_CTS_HANDLER(DEVWRITELINE("uart8251", i8251_device, write_cts))
 	MCFG_RS232_DSR_HANDLER(DEVWRITELINE("uart8251", i8251_device, write_dsr))
+	MCFG_DEVICE_CARD_DEVICE_INPUT_DEFAULTS("terminal", isbc286_terminal)
 
 	MCFG_ISBX_SLOT_ADD("sbx1", 0, isbx_cards, nullptr)
 	//MCFG_ISBX_SLOT_MINTR0_CALLBACK(DEVWRITELINE("pic_0", pic8259_device, ir3_w))
