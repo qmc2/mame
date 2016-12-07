@@ -13,12 +13,15 @@
 
 #define VNC_OSD_AUDIO_DEFAULT_PORT				6900
 #define VNC_OSD_AUDIO_DEFAULT_MAX_CONNECTIONS			32
+#define VNC_OSD_AUDIO_DEFAULT_SAMPLE_RATE			48000
 
 #define VNC_OSD_AUDIO_COMMAND_IDX_CONNECT_TO_STREAM		0
 #define VNC_OSD_AUDIO_COMMAND_IDX_DISCONNECT_FROM_STREAM	1
+#define VNC_OSD_AUDIO_COMMAND_IDX_SAMPLE_RATE			2
 
-#define VNC_OSD_AUDIO_COMMAND_STR_CONNECT_TO_STREAM		"VNC_OSD_AUDIO_CONNECT_TO_STREAM"
-#define VNC_OSD_AUDIO_COMMAND_STR_DISCONNECT_FROM_STREAM	"VNC_OSD_AUDIO_DISCONNECT_FROM_STREAM"
+#define VNC_OSD_AUDIO_COMMAND_STR_CONNECT_TO_STREAM		QByteArray("VNC_OSD_AUDIO_CONNECT_TO_STREAM")
+#define VNC_OSD_AUDIO_COMMAND_STR_DISCONNECT_FROM_STREAM	QByteArray("VNC_OSD_AUDIO_DISCONNECT_FROM_STREAM")
+#define VNC_OSD_AUDIO_COMMAND_STR_SAMPLE_RATE			QByteArray("VNC_OSD_AUDIO_SAMPLE_RATE")
 
 class UdpConnection
 {
@@ -34,7 +37,7 @@ public:
 class AudioServerThread : public QThread
 {
 public:
-	explicit AudioServerThread(int localPort = VNC_OSD_AUDIO_DEFAULT_PORT, int maxConnections = VNC_OSD_AUDIO_DEFAULT_MAX_CONNECTIONS, QObject *parent = 0);
+	explicit AudioServerThread(int localPort = VNC_OSD_AUDIO_DEFAULT_PORT, int sampleRate = VNC_OSD_AUDIO_DEFAULT_SAMPLE_RATE, int maxConnections = VNC_OSD_AUDIO_DEFAULT_MAX_CONNECTIONS, QObject *parent = 0);
 	~AudioServerThread();
 
 	QUdpSocket *socket() { return m_socket; }
@@ -60,6 +63,7 @@ private:
 	QUdpSocket *m_socket;
 	QHostAddress m_localAddress;
 	int m_localPort;
+	int m_sampleRate;
 	int m_maxConnections;
 	bool m_exit;
 	QHash<QString, UdpConnection> m_connections;

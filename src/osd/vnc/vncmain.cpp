@@ -463,7 +463,7 @@ void vnc_osd_interface::init_audio()
 						osd_printf_verbose("Audio: Could not open MP2 output file\n");
 				}
 				if ( !audio_server() ) {
-					m_audioServer = new AudioServerThread(m_options.vnc_audio_port());
+					m_audioServer = new AudioServerThread(m_options.vnc_audio_port(), m_options.sample_rate());
 					audio_server()->start();
 				}
 			}
