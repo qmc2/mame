@@ -92,6 +92,7 @@ private:
 	QByteArray m_queuedAudioData;
 	uint32_t m_encoderBufferSize;
 	AudioServerThread *m_audioServer;
+	QString m_emptyDriverName;
 };
 
 //============================================================

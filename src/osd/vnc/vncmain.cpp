@@ -44,6 +44,8 @@ extern "C" {
 #define VNC_OSD_ONE_MEGABYTE		1048576.0f
 #define VNC_OSD_ONE_GIGABYTE		1073741824.0f
 
+#define VNC_OSD_NO_DRIVER_LOADED	QString(m_machine->system().name).compare(m_emptyDriverName) == 0
+
 //============================================================
 //  MACROS
 //============================================================
@@ -164,7 +166,8 @@ vnc_osd_interface::vnc_osd_interface(vnc_options &options) :
 	m_rawAudioBytes(0),
 	m_encodedAudioBytes(0),
 	m_encoderBufferSize(0),
-	m_audioServer(0)
+	m_audioServer(0),
+	m_emptyDriverName("___empty")
 {
 	// NOP
 }
@@ -241,7 +244,7 @@ void vnc_osd_interface::init(running_machine &machine)
 	if ( view_name != "auto" )
 		vnc_render_target->set_view(vnc_render_target->configured_view(options.view(), 0, 1));
 	else
-		vnc_render_target->set_view(1); // auto => "pixel aspect"
+		vnc_render_target->set_view(0); // auto => "standard"
 
 	// initialize the input system by adding devices
 	keyboard_device = machine.input().device_class(DEVICE_CLASS_KEYBOARD).add_device("Keyboard", "KBD", 0);
@@ -294,10 +297,10 @@ void vnc_osd_interface::update(bool skip_redraw)
 	vnc_render_target->compute_minimum_size(tempwidth, tempheight);
 	tempwidth *= rfbScale; tempheight *= rfbScale;
 	float aspect;
-	if ( tempwidth > tempheight )
+	if ( VNC_OSD_NO_DRIVER_LOADED )
 		aspect = tempwidth / tempheight;
 	else
-		aspect = float(tempwidth) / float(tempheight);
+		aspect = vnc_render_target->pixel_aspect();
 	vnc_render_target->compute_visible_area(tempwidth, tempheight, aspect, vnc_render_target->orientation(), rfbFrameBufferWidth, rfbFrameBufferHeight);
 	vnc_render_target->set_bounds(rfbFrameBufferWidth, rfbFrameBufferHeight, aspect);
 
