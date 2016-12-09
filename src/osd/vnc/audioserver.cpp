@@ -12,7 +12,7 @@ AudioServerThread::AudioServerThread(int localPort, int sampleRate, int maxConne
 	m_maxConnections(maxConnections),
 	m_exit(false)
 {
-	m_clientCommands << VNC_OSD_AUDIO_COMMAND_STR_CONNECT_TO_STREAM << VNC_OSD_AUDIO_COMMAND_STR_DISCONNECT_FROM_STREAM << VNC_OSD_AUDIO_COMMAND_STR_SAMPLE_RATE;
+	m_clientCommands << VNC_OSD_AUDIO_COMMAND_STR_CONNECT_TO_STREAM << VNC_OSD_AUDIO_COMMAND_STR_DISCONNECT_FROM_STREAM;
 	start();
 }
 
@@ -55,8 +55,10 @@ void AudioServerThread::processDatagram(const QByteArray &datagram, const QHostA
 					osd_printf_verbose("Audio Server: Connect from client at address %s / port %d - accepted\n", peer.toString().toLocal8Bit().constData(), peerPort);
 					connections().insert(id, UdpConnection(peer, peerPort));
 					socket()->writeDatagram(VNC_OSD_AUDIO_COMMAND_STR_SAMPLE_RATE + ' ' + QByteArray::number(m_sampleRate), peer, peerPort);
-				} else
+				} else {
 					osd_printf_verbose("Audio Server: Connect from client at address %s / port %d - rejected (maximum number of connections reached)\n", peer.toString().toLocal8Bit().constData(), peerPort);
+					socket()->writeDatagram(VNC_OSD_AUDIO_COMMAND_STR_CLIENT_REJECTED, peer, peerPort);
+				}
 			}
 			break;
 		case VNC_OSD_AUDIO_COMMAND_IDX_DISCONNECT_FROM_STREAM:

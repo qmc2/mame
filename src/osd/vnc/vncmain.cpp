@@ -109,6 +109,7 @@ const options_entry vnc_options::vnc_option_entries[] =
 	{ "vnc_mp2write",	"0",		OPTION_BOOLEAN,		"Writes MP2 encoded audio data to 'mame_audio_stream.mp2' in the current working directory (default: 0)" },
 	{ "vnc_audio_bitrate",	"128000",	OPTION_INTEGER,		"Audio encoder bit rate (default: 128000)" },
 	{ "vnc_audio_port",	"6900",		OPTION_INTEGER,		"Audio server UDP port (default: 6900)" },
+	{ "vnc_audio_maxconn",	"32",		OPTION_INTEGER,		"Maximum number of client connections at a time (default: 32)" },
 
 	// end of list
 	{ 0 }
@@ -463,7 +464,7 @@ void vnc_osd_interface::init_audio()
 						osd_printf_verbose("Audio: Could not open MP2 output file\n");
 				}
 				if ( !audio_server() ) {
-					m_audioServer = new AudioServerThread(m_options.vnc_audio_port(), m_options.sample_rate());
+					m_audioServer = new AudioServerThread(m_options.vnc_audio_port(), m_options.sample_rate(), m_options.vnc_audio_maxconn());
 					audio_server()->start();
 				}
 			}
