@@ -108,7 +108,7 @@ void AudioServerThread::run()
 		while ( !m_exit ) {
 			readPendingDatagrams();
 			sendQueuedDatagrams();
-			msleep(1);
+			usleep(5000);
 		}
 	}
 	delete socket();
