@@ -167,7 +167,8 @@ vnc_osd_interface::vnc_osd_interface(vnc_options &options) :
 	m_encodedAudioBytes(0),
 	m_encoderBufferSize(0),
 	m_audioServer(0),
-	m_emptyDriverName("___empty")
+	m_emptyDriverName("___empty"),
+	m_mewUiActive(false)
 {
 	// NOP
 }
@@ -193,6 +194,9 @@ void vnc_osd_interface::init(running_machine &machine)
 	// call our parent
 	osd_common_t::init(machine);
 	m_machine = &machine;
+
+	// check if mewui is active and set the VNC OSD's internal property accordingly (there doesn't seem to exist an official way to ask the MAME core for it)
+	setMewUiActive(VNC_OSD_NO_DRIVER_LOADED);
 
 	// log banner
 	osd_printf_verbose("VNC OSD v%s\n", VNC_OSD_XSTR(VNC_OSD_VERSION));
@@ -297,7 +301,7 @@ void vnc_osd_interface::update(bool skip_redraw)
 	vnc_render_target->compute_minimum_size(tempwidth, tempheight);
 	tempwidth *= rfbScale; tempheight *= rfbScale;
 	float aspect;
-	if ( VNC_OSD_NO_DRIVER_LOADED )
+	if ( mewUiActive() )
 		aspect = tempwidth / tempheight;
 	else
 		aspect = vnc_render_target->pixel_aspect();

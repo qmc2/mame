@@ -74,6 +74,8 @@ public:
 	QList<QRect> &find_modified_quads();
 	void init_audio();
 	AudioServerThread *audio_server() { return m_audioServer; }
+	bool mewUiActive() { return m_mewUiActive; }
+	void setMewUiActive(bool active) { m_mewUiActive = active; }
 
 signals:
 	void enqueueAudioPacket(const QByteArray &packet);
@@ -93,6 +95,7 @@ private:
 	uint32_t m_encoderBufferSize;
 	AudioServerThread *m_audioServer;
 	QString m_emptyDriverName;
+	bool m_mewUiActive;
 };
 
 //============================================================
