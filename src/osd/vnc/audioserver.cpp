@@ -25,10 +25,10 @@ AudioServerThread::~AudioServerThread()
 bool AudioServerThread::bindToLocalPort()
 {
 	if ( socket()->bind(localAddress(), localPort()) ) {
-		osd_printf_verbose("Audio Server: Socket bound to address %s / port %d\n", localAddress().toString().toLocal8Bit().constData(), localPort());
+		osd_printf_verbose("Audio server: Socket bound to address %s / port %d\n", localAddress().toString().toLocal8Bit().constData(), localPort());
 		return true;
 	} else {
-		osd_printf_verbose("Audio Server: Couldn't bind server socket to address %s / port %d: %s\n", localAddress().toString().toLocal8Bit().constData(), localPort(), socket()->errorString().toLower().toLocal8Bit().constData());
+		osd_printf_verbose("Audio server: Couldn't bind server socket to address %s / port %d: %s\n", localAddress().toString().toLocal8Bit().constData(), localPort(), socket()->errorString().toLower().toLocal8Bit().constData());
 		return false;
 	}
 }
@@ -52,23 +52,23 @@ void AudioServerThread::processDatagram(const QByteArray &datagram, const QHostA
 		case VNC_OSD_AUDIO_COMMAND_IDX_CONNECT_TO_STREAM:
 			if ( !connections().contains(id) ) {
 				if ( connections().count() < maxConnections() ) {
-					osd_printf_verbose("Audio Server: Connect from client at address %s / port %d - accepted\n", peer.toString().toLocal8Bit().constData(), peerPort);
+					osd_printf_verbose("Audio server: Connect from client at address %s / port %d - accepted\n", peer.toString().toLocal8Bit().constData(), peerPort);
 					connections().insert(id, UdpConnection(peer, peerPort));
 					socket()->writeDatagram(VNC_OSD_AUDIO_COMMAND_STR_SAMPLE_RATE + ' ' + QByteArray::number(m_sampleRate), peer, peerPort);
 				} else {
-					osd_printf_verbose("Audio Server: Connect from client at address %s / port %d - rejected (maximum number of connections reached)\n", peer.toString().toLocal8Bit().constData(), peerPort);
+					osd_printf_verbose("Audio server: Connect from client at address %s / port %d - rejected (maximum number of connections reached)\n", peer.toString().toLocal8Bit().constData(), peerPort);
 					socket()->writeDatagram(VNC_OSD_AUDIO_COMMAND_STR_CLIENT_REJECTED, peer, peerPort);
 				}
 			}
 			break;
 		case VNC_OSD_AUDIO_COMMAND_IDX_DISCONNECT_FROM_STREAM:
 			if ( connections().contains(id) ) {
-				osd_printf_verbose("Audio Server: Disconnect from client at address %s / port %d\n", peer.toString().toLocal8Bit().constData(), peerPort);
+				osd_printf_verbose("Audio server: Disconnect from client at address %s / port %d\n", peer.toString().toLocal8Bit().constData(), peerPort);
 				connections().remove(id);
 			}
 			break;
 		default:
-			osd_printf_verbose("Audio Server: Unknown command received from %s client at address %s / port %d: '%s'\n", connections().contains(id) ? "connected" : "not connected", peer.toString().toLocal8Bit().constData(), peerPort, datagram.constData());
+			osd_printf_verbose("Audio server: Unknown command received from %s client at address %s / port %d: '%s'\n", connections().contains(id) ? "connected" : "not connected", peer.toString().toLocal8Bit().constData(), peerPort, datagram.constData());
 			break;
 	}
 }
@@ -79,7 +79,7 @@ void AudioServerThread::sendDatagram(const QByteArray &datagram)
 	while ( iter.hasNext() ) {
 		iter.next();
 		if ( socket()->writeDatagram(datagram, iter.value().address, iter.value().port) < 0 ) {
-			osd_printf_verbose("Audio Server: Failed sending datagram to address %s / port %d\n", iter.value().address.toString().toLocal8Bit().constData(), iter.value().port);
+			osd_printf_verbose("Audio server: Failed sending datagram to address %s / port %d\n", iter.value().address.toString().toLocal8Bit().constData(), iter.value().port);
 			connections().remove(clientId(iter.value().address, iter.value().port)); // no longer send to it, client has to reconnect
 		}
 	}
