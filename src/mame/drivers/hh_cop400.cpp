@@ -9,6 +9,7 @@
   - non-working games are due to MCU emulation bugs?
   - better not start on visually dumped games before other games are working
     (due to possible dump errors, hard to distinguish between that or MCU bug)
+  - why does h2hbaskb need a workaround on writing L pins?
 
 ***************************************************************************/
 
@@ -281,7 +282,6 @@ WRITE8_MEMBER(ctstein_state::write_l)
 {
 	// L0-L3: button lamps (strobed)
 	display_matrix(4, 1, data & 0xf, 1);
-	display_matrix(4, 1, 0, 0);
 }
 
 READ8_MEMBER(ctstein_state::read_l)
@@ -612,7 +612,7 @@ WRITE8_MEMBER(funjacks_state::write_d)
 {
 	// D: led grid + input mux
 	m_inp_mux = data;
-	m_d = data ^ 0xf;
+	m_d = ~data & 0xf;
 	display_matrix(2, 4, m_l, m_d);
 }
 
@@ -671,8 +671,8 @@ INPUT_PORTS_END
 static MACHINE_CONFIG_START( funjacks, funjacks_state )
 
 	/* basic machine hardware */
-	MCFG_CPU_ADD("maincpu", COP410, 2000000) // approximation - RC osc. R=47K, C=56pf
-	MCFG_COP400_CONFIG(COP400_CKI_DIVISOR_16, COP400_CKO_OSCILLATOR_OUTPUT, true) // guessed
+	MCFG_CPU_ADD("maincpu", COP410, 1000000) // approximation - RC osc. R=47K, C=56pf
+	MCFG_COP400_CONFIG(COP400_CKI_DIVISOR_8, COP400_CKO_OSCILLATOR_OUTPUT, false) // guessed
 	MCFG_COP400_WRITE_D_CB(WRITE8(funjacks_state, write_d))
 	MCFG_COP400_WRITE_L_CB(WRITE8(funjacks_state, write_l))
 	MCFG_COP400_WRITE_G_CB(WRITE8(funjacks_state, write_g))
@@ -727,7 +727,7 @@ public:
 WRITE8_MEMBER(funrlgl_state::write_d)
 {
 	// D: led grid
-	m_d = data ^ 0xf;
+	m_d = ~data & 0xf;
 	display_matrix(4, 4, m_l, m_d);
 }
 
@@ -771,8 +771,8 @@ INPUT_CHANGED_MEMBER(funrlgl_state::reset_button)
 static MACHINE_CONFIG_START( funrlgl, funrlgl_state )
 
 	/* basic machine hardware */
-	MCFG_CPU_ADD("maincpu", COP410, 2000000) // approximation - RC osc. R=51K, C=91pf
-	MCFG_COP400_CONFIG(COP400_CKI_DIVISOR_16, COP400_CKO_OSCILLATOR_OUTPUT, true) // guessed
+	MCFG_CPU_ADD("maincpu", COP410, 1000000) // approximation - RC osc. R=51K, C=91pf
+	MCFG_COP400_CONFIG(COP400_CKI_DIVISOR_8, COP400_CKO_OSCILLATOR_OUTPUT, true) // guessed
 	MCFG_COP400_WRITE_D_CB(WRITE8(funrlgl_state, write_d))
 	MCFG_COP400_WRITE_L_CB(WRITE8(funrlgl_state, write_l))
 	MCFG_COP400_WRITE_G_CB(WRITE8(funrlgl_state, write_g))
@@ -843,7 +843,7 @@ static MACHINE_CONFIG_START( plus1, plus1_state )
 
 	/* basic machine hardware */
 	MCFG_CPU_ADD("maincpu", COP410, 1000000) // approximation - RC osc. R=51K, C=100pf
-	MCFG_COP400_CONFIG(COP400_CKI_DIVISOR_16, COP400_CKO_OSCILLATOR_OUTPUT, true) // guessed
+	MCFG_COP400_CONFIG(COP400_CKI_DIVISOR_16, COP400_CKO_OSCILLATOR_OUTPUT, false) // guessed
 	MCFG_COP400_WRITE_D_CB(WRITE8(plus1_state, write_d))
 	MCFG_COP400_READ_G_CB(IOPORT("IN.0"))
 	MCFG_COP400_READ_L_CB(IOPORT("IN.1"))
@@ -1152,6 +1152,9 @@ MACHINE_CONFIG_END
 
   National Semiconductor QuizKid Racer (COP420 version)
   * COP420 MCU label COP420-NPG/N
+  * 8-digit 7seg led display(1 custom digit), 1 green led, no sound
+  
+  This is the COP420 version, the first release was on a MM5799 MCU.
 
 ***************************************************************************/
 
@@ -1174,16 +1177,17 @@ public:
 
 void qkracer_state::prepare_display()
 {
-	set_display_segmask(0xff, 0x7f);
+	set_display_segmask(0xdf, 0x7f);
+	set_display_segmask(0x20, 0x41); // equals sign
 
-	display_matrix(7, 9, m_l, (m_d | m_g << 4 | m_sk << 8) ^ 0xff);
+	display_matrix(7, 9, m_l, ~(m_d | m_g << 4 | m_sk << 8));
 }
 
 WRITE8_MEMBER(qkracer_state::write_d)
 {
 	// D: select digit, D3: input mux high bit
 	m_inp_mux = (m_inp_mux & 0xf) | (data << 1 & 0x10);
-	m_d = data;
+	m_d = data & 0xf;
 	prepare_display();
 }
 
@@ -1191,7 +1195,7 @@ WRITE8_MEMBER(qkracer_state::write_g)
 {
 	// G: select digit, input mux
 	m_inp_mux = (m_inp_mux & 0x10) | (data & 0xf);
-	m_g = data;
+	m_g = data & 0xf;
 	prepare_display();
 }
 
@@ -1254,7 +1258,7 @@ static MACHINE_CONFIG_START( qkracer, qkracer_state )
 
 	/* basic machine hardware */
 	MCFG_CPU_ADD("maincpu", COP420, 1000000) // approximation - RC osc. R=47K, C=100pf
-	MCFG_COP400_CONFIG(COP400_CKI_DIVISOR_16, COP400_CKO_OSCILLATOR_OUTPUT, false) // guessed
+	MCFG_COP400_CONFIG(COP400_CKI_DIVISOR_32, COP400_CKO_OSCILLATOR_OUTPUT, false) // guessed
 	MCFG_COP400_WRITE_D_CB(WRITE8(qkracer_state, write_d))
 	MCFG_COP400_WRITE_G_CB(WRITE8(qkracer_state, write_g))
 	MCFG_COP400_WRITE_L_CB(WRITE8(qkracer_state, write_l))
@@ -1337,7 +1341,7 @@ CONS( 1979, ctstein,   0,        0, ctstein,   ctstein,   driver_device, 0, "Cas
 
 CONS( 1980, h2hbaskb,  0,        0, h2hbaskb,  h2hbaskb,  driver_device, 0, "Coleco", "Head to Head Basketball/Hockey/Soccer (COP420L version)", MACHINE_SUPPORTS_SAVE )
 
-CONS( 1981, einvaderc, einvader, 0, einvaderc, einvaderc, driver_device, 0, "Entex", "Space Invader (Entex, COP444L version)", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK | MACHINE_NOT_WORKING )
+CONS( 1981, einvaderc, einvader, 0, einvaderc, einvaderc, driver_device, 0, "Entex", "Space Invader (Entex, COP444L version)", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
 
 CONS( 1979, funjacks,  0,        0, funjacks,  funjacks,  driver_device, 0, "Mattel", "Funtronics Jacks", MACHINE_SUPPORTS_SAVE | MACHINE_NOT_WORKING )
 CONS( 1979, funrlgl,   0,        0, funrlgl,   funrlgl,   driver_device, 0, "Mattel", "Funtronics Red Light Green Light", MACHINE_SUPPORTS_SAVE | MACHINE_NOT_WORKING )
@@ -1346,7 +1350,7 @@ CONS( 1980, plus1,     0,        0, plus1,     plus1,     driver_device, 0, "Mil
 CONS( 1981, lightfgt,  0,        0, lightfgt,  lightfgt,  driver_device, 0, "Milton Bradley", "Lightfight", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
 CONS( 1982, bship82,   bship,    0, bship82,   bship82,   driver_device, 0, "Milton Bradley", "Electronic Battleship (1982 version)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK ) // ***
 
-CONS( 1978, qkracer,   0,        0, qkracer,   qkracer,   driver_device, 0, "National Semiconductor", "QuizKid Racer (COP420 version)", MACHINE_SUPPORTS_SAVE | MACHINE_NO_SOUND_HW | MACHINE_NOT_WORKING )
+CONS( 1978, qkracer,   0,        0, qkracer,   qkracer,   driver_device, 0, "National Semiconductor", "QuizKid Racer (COP420 version)", MACHINE_SUPPORTS_SAVE | MACHINE_NO_SOUND_HW )
 
 // ***: As far as MAME is concerned, the game is emulated fine. But for it to be playable, it requires interaction
 // with other, unemulatable, things eg. game board/pieces, playing cards, pen & paper, etc.
