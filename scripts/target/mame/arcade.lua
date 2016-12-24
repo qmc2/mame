@@ -389,7 +389,7 @@ MACHINES["AY31015"] = true
 MACHINES["BANKDEV"] = true
 MACHINES["CDP1852"] = true
 MACHINES["CDP1871"] = true
---MACHINES["CMOS40105"] = true
+MACHINES["CMOS40105"] = true
 MACHINES["CDU76S"] = true
 MACHINES["COM8116"] = true
 MACHINES["CR589"] = true
@@ -567,6 +567,8 @@ MACHINES["X76F041"] = true
 MACHINES["X76F100"] = true
 MACHINES["Z80CTC"] = true
 MACHINES["Z80DART"] = true
+--MACHINES["Z80SIO"] = true
+MACHINES["Z80SCC"] = true
 MACHINES["Z80DMA"] = true
 MACHINES["Z80PIO"] = true
 MACHINES["Z80STI"] = true
@@ -1094,6 +1096,8 @@ files {
 	MAME_DIR .. "src/mame/machine/nl_pongd.h",
 	MAME_DIR .. "src/mame/machine/nl_breakout.cpp",
 	MAME_DIR .. "src/mame/machine/nl_breakout.h",
+	MAME_DIR .. "src/mame/machine/nl_stuntcyc.cpp",
+	MAME_DIR .. "src/mame/machine/nl_stuntcyc.h",
 	MAME_DIR .. "src/mame/drivers/poolshrk.cpp",
 	MAME_DIR .. "src/mame/includes/poolshrk.h",
 	MAME_DIR .. "src/mame/audio/poolshrk.cpp",
@@ -2488,10 +2492,6 @@ files {
 	MAME_DIR .. "src/mame/drivers/astrocde.cpp",
 	MAME_DIR .. "src/mame/includes/astrocde.h",
 	MAME_DIR .. "src/mame/video/astrocde.cpp",
-	MAME_DIR .. "src/mame/audio/gorf.cpp",
-	MAME_DIR .. "src/mame/audio/gorf.h",
-	MAME_DIR .. "src/mame/audio/wow.cpp",
-	MAME_DIR .. "src/mame/audio/wow.h",
 	MAME_DIR .. "src/mame/drivers/atlantis.cpp",
 	MAME_DIR .. "src/mame/drivers/balsente.cpp",
 	MAME_DIR .. "src/mame/includes/balsente.h",
