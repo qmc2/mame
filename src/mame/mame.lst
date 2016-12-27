@@ -10829,6 +10829,7 @@ drgninjab2                      // bootleg
 ffantasy                        // EX (c) 1989 Data East Corporation (World)
 ffantasyj                       // EV (c) 1989 Data East Corporation (Japan)
 ffantasya                       // EV (c) 1989 Data East Corporation (Japan)
+ffantasyb                       // EX (c) 1989 Data East Corporation (World)
 ffantasybl                      // bootleg
 hbarrel                         // (c) 1987 Data East USA (US)
 hbarrelw                        // (c) 1987 Data East Corporation (World)
@@ -11357,10 +11358,11 @@ yarunara                        // "55" Mahjong Yarunara 1991 Dynax
 @source:dynduke.cpp
 dbldynj                         // (c) 1989 Seibu Kaihatsu
 dbldynu                         // (c) 1989 Seibu Kaihatsu + Fabtek license
-dynduke                         // (c) 1989 Seibu Kaihatsu
-dyndukea                        // (c) 1989 Seibu Kaihatsu
-dyndukej                        // (c) 1989 Seibu Kaihatsu
-dyndukeu                        // (c) 1989 Seibu Kaihatsu + Fabtek license
+dynduke                         // (c) 1989 Seibu Kaihatsu (03SEP89)
+dyndukea                        // (c) 1989 Seibu Kaihatsu (25JUL89)
+dyndukej                        // (c) 1989 Seibu Kaihatsu (03SEP89
+dyndukeja                       // (c) 1989 Seibu Kaihatsu (25JUL89)
+dyndukeu                        // (c) 1989 Seibu Kaihatsu + Fabtek license (25JUL89)
 
 @source:eacc.cpp
 eacc                            //
@@ -15109,7 +15111,9 @@ leking                          //
 olympic                         //
 
 @source:joctronic.cpp
+bldyrolr                        //
 punkywil                        //
+slalom03                        //
 walkyria                        //
 
 @source:jokrwild.cpp
@@ -28795,6 +28799,7 @@ kof99p                          // 0251 (c) 1999 SNK
 kog                             // bootleg of kof97
 kotm                            // 0016 (c) 1991 SNK
 kotm2                           // 0039 (c) 1992 SNK
+kotm2a                          // 0039 (c) 1992 SNK
 kotm2p                          // 0039 (c) 1992 SNK (prototype)
 kotmh                           // 0016 (c) 1991 SNK
 lans2004                        // bootleg of shocktr2
@@ -30696,6 +30701,8 @@ madrace                         //
 zira                            //
 
 @source:play_3.cpp
+cobrapb                         //
+eballchps                       //
 fldragon                        //
 fldragona                       //
 ironball                        //
@@ -35917,6 +35924,7 @@ tekipaki                        // TP-020 (c) 1991 Toaplan
 truxton2                        // TP-024 (c) 1992 Toaplan
 vfive                           // TP-027 (c) 1993 Toaplan (Japan)
 whoopee                         // TP-025
+enmadaio						// TP-031
 
 @source:toki.cpp
 juju                            // (c) 1989 Tad (Japan)
