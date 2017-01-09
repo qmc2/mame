@@ -415,7 +415,7 @@ m6805_base_device::m6805_base_device(const machine_config &mconfig, const char *
 {
 }
 
-m6805_base_device::m6805_base_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock, const device_type type, const char *name, uint32_t addr_width, address_map_constructor internal_map, const char *shortname, const char *source)
+m6805_base_device::m6805_base_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock, const device_type type, const char *name, uint32_t addr_width, address_map_delegate internal_map, const char *shortname, const char *source)
 	: cpu_device(mconfig, type, name, tag, owner, clock, shortname, source),
 	m_program_config("program", ENDIANNESS_BIG, 8, addr_width, 0, internal_map)
 {
@@ -965,64 +965,227 @@ void m68705_device::execute_set_input(int inputnum, int state)
 
 /* ddr - direction registers */
 
-WRITE8_MEMBER(m68705_new_device::mc68705_ddrA_w)
+WRITE8_MEMBER(m68705_new_device::internal_ddrA_w)
 {
+	const u8 ddr_old = m_ddrA;
 	m_ddrA = data;
+
+	// update outputs if lines switched to output
+	if ((m_ddrA & ~ddr_old) != 0)
+		update_portA_state();
 }
 
-WRITE8_MEMBER(m68705_new_device::mc68705_ddrB_w)
+WRITE8_MEMBER(m68705_new_device::internal_ddrB_w)
 {
+	const u8 ddr_old = m_ddrB;
 	m_ddrB = data;
+
+	// update outputs if lines switched to output
+	if ((m_ddrB & ~ddr_old) != 0)
+		update_portB_state();
 }
 
-WRITE8_MEMBER(m68705_new_device::mc68705_ddrC_w)
+WRITE8_MEMBER(m68705_new_device::internal_ddrC_w)
 {
+	const u8 ddr_old = m_ddrC;
 	m_ddrC = data;
+
+	// update outputs if lines switched to output
+	if ((m_ddrC & ~ddr_old) != 0)
+		update_portC_state();
 }
 
 /* read ports */
 
-READ8_MEMBER(m68705_new_device::mc68705_portA_r)
+READ8_MEMBER(m68705_new_device::internal_portA_r)
 {
-	m_portA_in = m_portA_cb_r(0, ~m_ddrA); // pass the direction register as mem_mask so that externally we know which lines were actually pulled
-	uint8_t res = (m_portA_out & m_ddrA) | (m_portA_in & ~m_ddrA);
-	return res;
-
-}
-
-READ8_MEMBER(m68705_new_device::mc68705_portB_r)
-{
-	m_portB_in = m_portB_cb_r(0, ~m_ddrB);
-	uint8_t res = (m_portB_out & m_ddrB) | (m_portB_in & ~m_ddrB);
+	if (!m_portA_cb_r.isnull())
+		m_portA_in = m_portA_cb_r(space, 0, ~m_ddrA); // pass the direction register as mem_mask so that externally we know which lines were actually pulled
+	u8 res = (m_portA_out & m_ddrA) | (m_portA_in & ~m_ddrA);
 	return res;
 }
 
-READ8_MEMBER(m68705_new_device::mc68705_portC_r)
+READ8_MEMBER(m68705_new_device::internal_portB_r)
 {
-	m_portC_in = m_portC_cb_r(0, ~m_ddrC);
-	uint8_t res = (m_portC_out & m_ddrC) | (m_portC_in & ~m_ddrC);
+	if (!m_portB_cb_r.isnull())
+		m_portB_in = m_portB_cb_r(space, 0, ~m_ddrB);
+	u8 res = (m_portB_out & m_ddrB) | (m_portB_in & ~m_ddrB);
+	return res;
+}
+
+READ8_MEMBER(m68705_new_device::internal_portC_r)
+{
+	if (!m_portC_cb_r.isnull())
+		m_portC_in = m_portC_cb_r(space, 0, ~m_ddrC);
+	u8 res = (m_portC_out & m_ddrC) | (m_portC_in & ~m_ddrC);
 	return res;
 }
 
 /* write ports */
 
-WRITE8_MEMBER(m68705_new_device::mc68705_portA_w)
+WRITE8_MEMBER(m68705_new_device::internal_portA_w)
 {
-	m_portA_cb_w(0, data, m_ddrA); // pass the direction register as mem_mask so that externally we know which lines were actually pushed
+	// load the output latch
 	m_portA_out = data;
+
+	// update the output lines
+	update_portA_state();
 }
 
-WRITE8_MEMBER(m68705_new_device::mc68705_portB_w)
+void m68705_new_device::update_portA_state()
 {
-	m_portB_cb_w(0, data, m_ddrB);
+	// pass bits through DDR output mask
+	m_portA_in = (m_portA_out & m_ddrA) | (m_portA_in & ~m_ddrA);
+
+	// pass the direction register as mem_mask as mem_mask so that externally we know which lines were actually pushed
+	m_portA_cb_w(space(AS_PROGRAM), 0, m_portA_in, m_ddrA);
+}
+
+WRITE8_MEMBER(m68705_new_device::internal_portB_w)
+{
+	// load the output latch
 	m_portB_out = data;
+
+	// update the output lines
+	update_portB_state();
 }
 
-WRITE8_MEMBER(m68705_new_device::mc68705_portC_w)
+void m68705_new_device::update_portB_state()
 {
-	m_portC_cb_w(0, data, m_ddrC);
-	m_portC_out = data;
+	// pass bits through DDR output mask
+	m_portB_in = (m_portB_out & m_ddrB) | (m_portB_in & ~m_ddrB);
+
+	// pass the direction register as mem_mask as mem_mask so that externally we know which lines were actually pushed
+	m_portB_cb_w(space(AS_PROGRAM), 0, m_portB_in, m_ddrB);
 }
+
+WRITE8_MEMBER(m68705_new_device::internal_portC_w)
+{
+	// load the output latch
+	m_portC_out = data;
+
+	// update the output lines
+	update_portC_state();
+}
+
+void m68705_new_device::update_portC_state()
+{
+	// pass bits through DDR output mask
+	m_portC_in = (m_portC_out & m_ddrC) | (m_portC_in & ~m_ddrC);
+
+	// pass the direction register as mem_mask as mem_mask so that externally we know which lines were actually pushed
+	m_portC_cb_w(space(AS_PROGRAM), 0, m_portC_in, m_ddrC);
+}
+
+READ8_MEMBER(m68705_new_device::pa_r)
+{
+	return m_portA_in;
+}
+
+READ8_MEMBER(m68705_new_device::pb_r)
+{
+	return m_portB_in;
+}
+
+READ8_MEMBER(m68705_new_device::pc_r)
+{
+	return m_portC_in;
+}
+
+WRITE8_MEMBER(m68705_new_device::pa_w)
+{
+	COMBINE_DATA(&m_portA_in);
+}
+
+WRITE8_MEMBER(m68705_new_device::pb_w)
+{
+	COMBINE_DATA(&m_portB_in);
+}
+
+WRITE8_MEMBER(m68705_new_device::pc_w)
+{
+	COMBINE_DATA(&m_portC_in);
+}
+
+
+READ8_MEMBER(m68705_new_device::internal_68705_tdr_r)
+{
+	//logerror("internal_68705 TDR read, returning %02X\n", m_tdr);
+	return m_tdr;
+}
+
+WRITE8_MEMBER(m68705_new_device::internal_68705_tdr_w)
+{
+	//logerror("internal_68705 TDR written with %02X, was %02X\n", data, m_tdr);
+	m_tdr = data;
+}
+
+
+READ8_MEMBER(m68705_new_device::internal_68705_tcr_r)
+{
+	//logerror("internal_68705 TCR read, returning %02X\n", (m_tcr&0xF7));
+	return (m_tcr & 0xF7);
+}
+
+WRITE8_MEMBER(m68705_new_device::internal_68705_tcr_w)
+{
+/*
+    logerror("internal_68705 TCR written with %02X\n", data);
+    if (data&0x80) logerror("  TIR=1, Timer Interrupt state is set\n"); else logerror("  TIR=0; Timer Interrupt state is cleared\n");
+    if (data&0x40) logerror("  TIM=1, Timer Interrupt is now masked\n"); else logerror("  TIM=0, Timer Interrupt is now unmasked\n");
+    if (data&0x20) logerror("  TIN=1, Timer Clock source is set to external\n"); else logerror("  TIN=0, Timer Clock source is set to internal\n");
+    if (data&0x10) logerror("  TIE=1, Timer External pin is enabled\n"); else logerror("  TIE=0, Timer External pin is disabled\n");
+    if (data&0x08) logerror("  PSC=1, Prescaler counter cleared\n"); else logerror("  PSC=0, Prescaler counter left alone\n");
+    logerror("  Prescaler: %d\n", (1<<(data&0x7)));
+*/
+	// if timer was enabled but now isn't, shut it off.
+	// below is a hack assuming the TIMER pin isn't going anywhere except tied to +5v, so basically TIN is acting as an active-low timer enable, and TIE is ignored even in the case where TIE=1, the timer will end up being 5v ANDED against the internal timer clock which == the internal timer clock.
+	// Note this hack is incorrect; the timer pin actually does connect somewhere (vblank or maybe one of the V counter bits?), but the game never actually uses the timer pin in external clock mode, so the TIMER connection must be left over from development. We can apparently safely ignore it.
+	if ((m_tcr^data)&0x20)// check if TIN state changed
+	{
+		/* logerror("timer enable state changed!\n"); */
+		if (data&0x20) m_68705_timer->adjust(attotime::never, TIMER_68705_PRESCALER_EXPIRED);
+		else m_68705_timer->adjust(attotime::from_hz(((clock())/4)/(1<<(data&0x7))), TIMER_68705_PRESCALER_EXPIRED);
+	}
+	// prescaler check: if timer prescaler has changed, or the PSC bit is set, adjust the timer length for the prescaler expired timer, but only if the timer would be running
+	if ( (((m_tcr&0x07)!=(data&0x07))||(data&0x08)) && ((data&0x20)==0) )
+	{
+		/* logerror("timer reset due to PSC or prescaler change!\n"); */
+		m_68705_timer->adjust(attotime::from_hz(((clock())/4)/(1<<(data&0x7))), TIMER_68705_PRESCALER_EXPIRED);
+	}
+	m_tcr = data;
+	// if int state is set, and TIM is unmasked, assert an interrupt. otherwise clear it.
+	if ((m_tcr&0xC0) == 0x80)
+		set_input_line(M68705_INT_TIMER, ASSERT_LINE);
+	else
+		set_input_line(M68705_INT_TIMER, CLEAR_LINE);
+
+}
+
+void m68705_new_device::device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr)
+{
+	switch (id)
+	{
+	case TIMER_68705_PRESCALER_EXPIRED:
+		timer_68705_increment(ptr, param);
+		break;
+	default:
+		assert_always(false, "Unknown id in m68705_new_device::device_timer");
+	}
+}
+
+TIMER_CALLBACK_MEMBER(m68705_new_device::timer_68705_increment)
+{
+	m_tdr++;
+	if (m_tdr == 0x00) m_tcr |= 0x80; // if we overflowed, set the int bit
+	if ((m_tcr&0xC0) == 0x80)
+		set_input_line(M68705_INT_TIMER, ASSERT_LINE);
+	else
+		set_input_line(M68705_INT_TIMER, CLEAR_LINE);
+	m_68705_timer->adjust(attotime::from_hz(((clock())/4)/(1<<(m_tcr&0x7))), TIMER_68705_PRESCALER_EXPIRED);
+}
+
+
 
 /*
 
@@ -1079,13 +1242,17 @@ selftest rom at similar area; selftest roms differ between the U2 and U3 version
 
 */
 
-ADDRESS_MAP_START( m68705_internal_map, AS_PROGRAM, 8, m68705_new_device )
-	AM_RANGE(0x000, 0x000) AM_READWRITE(mc68705_portA_r, mc68705_portA_w)
-	AM_RANGE(0x001, 0x001) AM_READWRITE(mc68705_portB_r, mc68705_portB_w)
-	AM_RANGE(0x002, 0x002) AM_READWRITE(mc68705_portC_r, mc68705_portC_w)
-	AM_RANGE(0x004, 0x004) AM_WRITE(mc68705_ddrA_w)
-	AM_RANGE(0x005, 0x005) AM_WRITE(mc68705_ddrB_w)
-	AM_RANGE(0x006, 0x006) AM_WRITE(mc68705_ddrC_w)
+DEVICE_ADDRESS_MAP_START( internal_map, 8, m68705_new_device )
+	AM_RANGE(0x000, 0x000) AM_READWRITE(internal_portA_r, internal_portA_w)
+	AM_RANGE(0x001, 0x001) AM_READWRITE(internal_portB_r, internal_portB_w)
+	AM_RANGE(0x002, 0x002) AM_READWRITE(internal_portC_r, internal_portC_w)
+	AM_RANGE(0x004, 0x004) AM_WRITE(internal_ddrA_w)
+	AM_RANGE(0x005, 0x005) AM_WRITE(internal_ddrB_w)
+	AM_RANGE(0x006, 0x006) AM_WRITE(internal_ddrC_w)
+
+	AM_RANGE(0x008, 0x008) AM_READWRITE(internal_68705_tdr_r, internal_68705_tdr_w)
+	AM_RANGE(0x009, 0x009) AM_READWRITE(internal_68705_tcr_r, internal_68705_tcr_w)
+
 
 	AM_RANGE(0x010, 0x07f) AM_RAM
 	AM_RANGE(0x080, 0x7ff) AM_ROM
@@ -1111,10 +1278,37 @@ void m68705_new_device::device_start()
 	m_portB_cb_w.resolve_safe();
 	m_portC_cb_w.resolve_safe();
 
-	m_portA_cb_r.resolve_safe(0xff);
-	m_portB_cb_r.resolve_safe(0xff);
-	m_portC_cb_r.resolve_safe(0xff);
+	m_portA_cb_r.resolve();
+	m_portB_cb_r.resolve();
+	m_portC_cb_r.resolve();
 
+	m_portA_in = 0xff;
+	m_portB_in = 0xff;
+	m_portC_in = 0xff;
+
+	// allocate the MCU timer, and set it to fire NEVER.
+	m_68705_timer = machine().scheduler().timer_alloc(timer_expired_delegate(FUNC(m68705_new_device::timer_68705_increment),this));
+	m_68705_timer->adjust(attotime::never);
+
+	save_item(NAME(m_tdr));
+	save_item(NAME(m_tcr));
+
+}
+
+void m68705_new_device::device_reset()
+{
+	m68705_device::device_reset();
+
+	// all bits of ports A, B and C revert to inputs on reset
+	m_ddrA = 0;
+	m_ddrB = 0;
+	m_ddrC = 0;
+
+	m_tdr = 0xFF;
+	m_tcr = 0x7F;
+
+	//set_input_line(M68705_IRQ_LINE, CLEAR_LINE);
+	m_68705_timer->adjust(attotime::from_hz(((clock())/4)/(1<<7)));
 }
 
 /****************************************************************************

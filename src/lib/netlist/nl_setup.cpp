@@ -21,31 +21,7 @@
 #include "devices/nlid_proxy.h"
 #include "analog/nld_twoterm.h"
 #include "solver/nld_solver.h"
-
-static NETLIST_START(base)
-	TTL_INPUT(ttlhigh, 1)
-	TTL_INPUT(ttllow, 0)
-	NET_REGISTER_DEV(GND, GND)
-	NET_REGISTER_DEV(PARAMETER, NETLIST)
-
-	LOCAL_SOURCE(diode_models)
-	LOCAL_SOURCE(bjt_models)
-	LOCAL_SOURCE(family_models)
-	LOCAL_SOURCE(TTL74XX_lib)
-	LOCAL_SOURCE(CD4XXX_lib)
-	LOCAL_SOURCE(OPAMP_lib)
-	LOCAL_SOURCE(otheric_lib)
-
-	INCLUDE(diode_models);
-	INCLUDE(bjt_models);
-	INCLUDE(family_models);
-	INCLUDE(TTL74XX_lib);
-	INCLUDE(CD4XXX_lib);
-	INCLUDE(OPAMP_lib);
-	INCLUDE(otheric_lib);
-
-NETLIST_END()
-
+#include "macro/nlm_base.h"
 
 // ----------------------------------------------------------------------------------------
 // setup_t
@@ -103,27 +79,17 @@ void setup_t::namespace_pop()
 
 void setup_t::register_lib_entry(const pstring &name)
 {
-	if (plib::container::contains(m_lib, name))
-		log().warning("Lib entry collection already contains {1}. IGNORED", name);
-	else
-		m_lib.push_back(name);
+	factory().register_device(plib::make_unique_base<factory::element_t, factory::library_element_t>(*this, name, name, ""));
 }
 
 void setup_t::register_dev(const pstring &classname, const pstring &name)
 {
-	if (plib::container::contains(m_lib, classname))
-	{
-		namespace_push(name);
-		include(classname);
-		namespace_pop();
-	}
-	else
-	{
-		auto f = factory().factory_by_name(classname);
-		if (f == nullptr)
-			log().fatal("Class {1} not found!\n", classname);
-		m_device_factory.push_back(std::pair<pstring, base_factory_t *>(build_fqn(name), f));
-	}
+	auto f = factory().factory_by_name(classname);
+	if (f == nullptr)
+		log().fatal("Class {1} not found!\n", classname);
+	/* make sure we parse macro library entries */
+	f->macro_actions(netlist(), name);
+	m_device_factory.push_back(std::pair<pstring, factory::element_t *>(build_fqn(name), f));
 }
 
 bool setup_t::device_exists(const pstring name) const
@@ -165,7 +131,7 @@ void setup_t::register_dippins_arr(const pstring &terms)
 {
 	plib::pstring_vector_t list(terms,", ");
 	if (list.size() == 0 || (list.size() % 2) == 1)
-		log().fatal("You must pass an equal number of pins to DIPPINS");
+		log().fatal("You must pass an equal number of pins to DIPPINS {1}" , build_fqn(""));
 	std::size_t n = list.size();
 	for (std::size_t i = 0; i < n / 2; i++)
 	{
@@ -349,7 +315,7 @@ const pstring setup_t::resolve_alias(const pstring &name) const
 		ret = temp;
 		auto p = m_alias.find(ret);
 		temp = (p != m_alias.end() ? p->second : "");
-	} while (temp != "");
+	} while (temp != "" && temp != ret);
 
 	log().debug("{1}==>{2}\n", name, ret);
 	return ret;
@@ -874,15 +840,19 @@ class logic_family_std_proxy_t : public logic_family_desc_t
 public:
 	logic_family_std_proxy_t() { }
 	virtual plib::owned_ptr<devices::nld_base_d_to_a_proxy> create_d_a_proxy(netlist_t &anetlist,
-			const pstring &name, logic_output_t *proxied) const override
-	{
-		return plib::owned_ptr<devices::nld_base_d_to_a_proxy>::Create<devices::nld_d_to_a_proxy>(anetlist, name, proxied);
-	}
-	virtual plib::owned_ptr<devices::nld_base_a_to_d_proxy> create_a_d_proxy(netlist_t &anetlist, const pstring &name, logic_input_t *proxied) const override
-	{
-		return plib::owned_ptr<devices::nld_base_a_to_d_proxy>::Create<devices::nld_a_to_d_proxy>(anetlist, name, proxied);
-	}
+			const pstring &name, logic_output_t *proxied) const override;
+	virtual plib::owned_ptr<devices::nld_base_a_to_d_proxy> create_a_d_proxy(netlist_t &anetlist, const pstring &name, logic_input_t *proxied) const override;
 };
+
+plib::owned_ptr<devices::nld_base_d_to_a_proxy> logic_family_std_proxy_t::create_d_a_proxy(netlist_t &anetlist,
+		const pstring &name, logic_output_t *proxied) const
+{
+	return plib::owned_ptr<devices::nld_base_d_to_a_proxy>::Create<devices::nld_d_to_a_proxy>(anetlist, name, proxied);
+}
+plib::owned_ptr<devices::nld_base_a_to_d_proxy> logic_family_std_proxy_t::create_a_d_proxy(netlist_t &anetlist, const pstring &name, logic_input_t *proxied) const
+{
+	return plib::owned_ptr<devices::nld_base_a_to_d_proxy>::Create<devices::nld_a_to_d_proxy>(anetlist, name, proxied);
+}
 
 const logic_family_desc_t *setup_t::family_from_model(const pstring &model)
 {
@@ -1040,7 +1010,8 @@ std::unique_ptr<plib::pistream> setup_t::get_data_stream(const pstring name)
 				return strm;
 		}
 	}
-	log().fatal("unable to find data named {1} in source collection", name);
+	//log().fatal("unable to find data named {1} in source collection", name);
+	log().warning("unable to find data named {1} in source collection", name);
 	return std::unique_ptr<plib::pistream>(nullptr);
 }
 
@@ -1089,4 +1060,22 @@ std::unique_ptr<plib::pistream> source_file_t::stream(const pstring &name)
 	return plib::make_unique_base<plib::pistream, plib::pifilestream>(m_filename);
 }
 
+bool source_proc_t::parse(const pstring &name)
+{
+	if (name == m_setup_func_name)
+	{
+		m_setup_func(setup());
+		return true;
+	}
+	else
+		return false;
 }
+
+std::unique_ptr<plib::pistream> source_proc_t::stream(const pstring &name)
+{
+	std::unique_ptr<plib::pistream> p(nullptr);
+	return p;
+}
+
+}
+

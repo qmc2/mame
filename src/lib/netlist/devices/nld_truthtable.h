@@ -366,18 +366,14 @@ namespace netlist
 		plib::pstring_vector_t m_desc;
 	};
 
-	class netlist_base_factory_truthtable_t : public base_factory_t
+	class netlist_base_factory_truthtable_t : public factory::element_t
 	{
 		P_PREVENT_COPYING(netlist_base_factory_truthtable_t)
 	public:
 		netlist_base_factory_truthtable_t(const pstring &name, const pstring &classname,
-				const pstring &def_param)
-		: base_factory_t(name, classname, def_param), m_family(family_TTL())
-		{}
+				const pstring &def_param);
 
-		virtual ~netlist_base_factory_truthtable_t()
-		{
-		}
+		virtual ~netlist_base_factory_truthtable_t();
 
 		plib::pstring_vector_t m_desc;
 		const logic_family_desc_t *m_family;
