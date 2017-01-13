@@ -14264,6 +14264,7 @@ bigtrak                         // Milton Bradley
 bship                           // Milton Bradley
 bshipb                          // Milton Bradley
 cmsport                         // Conic
+cnbaskb                         // Conic
 cnfball                         // Conic
 cnfball2                        // Conic
 cnsector                        // Parker Bros
@@ -14283,6 +14284,7 @@ elecdet                         // Ideal
 esbattle                        // Entex
 esoccer                         // Entex
 fxmcr165                        // Gakken
+ginv1000                        // Gakken
 gjackpot                        // Gakken
 gpoker                          // Gakken
 h2hbaseb                        // Coleco
@@ -20497,10 +20499,6 @@ megaiv                          // 1989 Mephisto Mega IV Schachcomputer
 milano                          // 1989 Mephisto Milano Schachcomputer
 monteciv                        // 1990 Mephisto Monte Carlo IV LE Schachcomputer
 polgar                          // 1986 Mephisto Polgar Schachcomputer
-sfortea                         // 1987 Novag Super Forte A Chess Computer
-sforteb                         // 1988 Novag Super Forte B Chess Computer
-sforteba                        // 1988 Novag Super Forte B Chess Computer (ALT)
-sfortec                         // 1989 Novag Super Forte C Chess Computer
 van16                           // 1991 Mephisto Vancouver 68000
 van32                           // 1991 Mephisto Vancouver 68020
 
@@ -29202,8 +29200,14 @@ raiders5                        // UPL-85004 (c) 1985
 raiders5t                       // UPL-85004 (c) 1985 Taito license
 
 @source:novag6502.cpp
+sexpert                         //
 sexpertb                        //
 sexpertc                        //
+sexpertca                       //
+sforte                          //
+sforteb                         //
+sforteba                        //
+sfortec                         //
 supercon                        //
 
 @source:nsm.cpp
@@ -31004,6 +31008,7 @@ poly880                         //
 
 @source:polyplay.cpp
 polyplay                        //
+polyplay2                       //
 
 @source:pong.cpp
 breakout                        // (c) 1976 Atari
@@ -31375,6 +31380,9 @@ pv9234                          //
 
 @source:pve500.cpp
 pve500                          // SONY PVE-500
+
+@source:pwrview.cpp
+pwrview                         // Compugraphic MCS PowerView 10
 
 @source:px4.cpp
 px4                             // 1985 Epson PX-4
