@@ -92,7 +92,7 @@ namespace netlist
 		{
 			m_inc = netlist_time::from_double(1.0 / (m_freq()*2.0));
 
-			connect_late(m_feedback, m_Q);
+			connect(m_feedback, m_Q);
 		}
 		NETLIB_UPDATEI();
 		//NETLIB_RESETI();
@@ -123,7 +123,7 @@ namespace netlist
 		{
 			m_inc[0] = netlist_time::from_double(1.0 / (m_freq()*2.0));
 
-			connect_late(m_feedback, m_Q);
+			connect(m_feedback, m_Q);
 			{
 				netlist_time base = netlist_time::from_double(1.0 / (m_freq()*2.0));
 				plib::pstring_vector_t pat(m_pattern(),",");
@@ -267,11 +267,11 @@ namespace netlist
 		{
 			register_subalias("I", m_RIN.m_P);
 			register_subalias("G", m_RIN.m_N);
-			connect_late(m_I, m_RIN.m_P);
+			connect(m_I, m_RIN.m_P);
 
 			register_subalias("_OP", m_ROUT.m_P);
 			register_subalias("Q", m_ROUT.m_N);
-			connect_late(m_Q, m_ROUT.m_P);
+			connect(m_Q, m_ROUT.m_P);
 		}
 
 		NETLIB_RESETI()
@@ -286,9 +286,9 @@ namespace netlist
 		}
 
 	private:
-		NETLIB_NAME(twoterm) m_RIN;
+		analog::NETLIB_NAME(twoterm) m_RIN;
 		/* Fixme: only works if the device is time-stepped - need to rework */
-		NETLIB_NAME(twoterm) m_ROUT;
+		analog::NETLIB_NAME(twoterm) m_ROUT;
 		analog_input_t m_I;
 		analog_output_t m_Q;
 
@@ -367,7 +367,7 @@ namespace netlist
 			register_subalias("2", m_R.m_N);
 		}
 
-		NETLIB_SUB(R_base) m_R;
+		analog::NETLIB_SUB(R_base) m_R;
 		logic_input_t m_I;
 		param_double_t m_RON;
 		param_double_t m_ROFF;

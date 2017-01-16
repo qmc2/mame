@@ -8907,6 +8907,7 @@ hardbodyg                       //
 hvymetap                        //
 ladyluck                        //
 motrdome                        //
+motrdomeg                       //
 prtyanim                        //
 prtyanimg                       //
 specforc                        //
@@ -13675,6 +13676,7 @@ magoddsb                        // 198? (c) Micro Manufacturing Ltd.
 magoddsc                        // 198? (c) Micro Manufacturing Ltd.
 magoddsd                        // 198? (c) Micro Manufacturing Ltd.
 match98                         // (c) 1998 Amcoe
+mbs2euro                        // (c) 2002 Auto-Data Graz
 megaline                        // (c) 1991 Fun World.
 moonlght                        // bootleg
 moonlghta                       // bootleg
@@ -14256,6 +14258,7 @@ ktopgun                         // Konami
 nupogodi                        //
 
 @source:hh_tms1k.cpp
+7in1ss                          // Tiger Electronics
 amaztron                        // Coleco
 astro                           // Kosmos
 bankshot                        // Parker Bros
@@ -17430,6 +17433,7 @@ m6805evs                        //
 @source:m68705prg.cpp
 705p3prg                        //
 705p5prg                        //
+705r3prg                        //
 705u3prg                        //
 
 @source:m72.cpp
@@ -29205,13 +29209,14 @@ raiders5                        // UPL-85004 (c) 1985
 raiders5t                       // UPL-85004 (c) 1985 Taito license
 
 @source:novag6502.cpp
-sexpert                         //
+cforteb                         //
+sexperta                        //
 sexpertb                        //
 sexpertc                        //
-sexpertca                       //
-sforte                          //
+sexpertc1                       //
+sfortea                         //
+sfortea1                        //
 sforteb                         //
-sforteba                        //
 sfortec                         //
 supercon                        //
 

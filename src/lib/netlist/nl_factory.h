@@ -18,6 +18,7 @@
 #include "nl_base.h"
 
 #define NETLIB_DEVICE_IMPL(chip) factory::constructor_ptr_t decl_ ## chip = factory::constructor_t< NETLIB_NAME(chip) >;
+#define NETLIB_DEVICE_IMPL_NS(ns, chip) factory::constructor_ptr_t decl_ ## chip = factory::constructor_t< ns :: NETLIB_NAME(chip) >;
 
 namespace netlist { namespace factory
 {
@@ -74,13 +75,7 @@ namespace netlist { namespace factory
 			register_device(std::unique_ptr<element_t>(new device_element_t<device_class>(name, classname, def_param)));
 		}
 
-		void register_device(std::unique_ptr<element_t> factory)
-		{
-			for (auto & e : *this)
-				if (e->name() == factory->name())
-					error("factory already contains " + factory->name());
-			push_back(std::move(factory));
-		}
+		void register_device(std::unique_ptr<element_t> factory);
 
 		element_t * factory_by_name(const pstring &devname);
 
@@ -91,10 +86,8 @@ namespace netlist { namespace factory
 		}
 
 	private:
-		void error(const pstring &s);
-
 		setup_t &m_setup;
-	};
+};
 
 	// -----------------------------------------------------------------------------
 	// factory_creator_ptr_t

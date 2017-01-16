@@ -132,7 +132,7 @@ class NETLIB_NAME(name) : public device_t
 #define NETLIB_TIMESTEP(chip) void NETLIB_NAME(chip) :: timestep(const nl_double step)
 
 #define NETLIB_SUB(chip) nld_ ## chip
-#define NETLIB_SUBXX(chip) std::unique_ptr< nld_ ## chip >
+#define NETLIB_SUBXX(ns, chip) std::unique_ptr< ns :: nld_ ## chip >
 
 #define NETLIB_UPDATE(chip) void NETLIB_NAME(chip) :: update(void) NL_NOEXCEPT
 #define NETLIB_PARENT_UPDATE(chip) NETLIB_NAME(chip) :: update();
@@ -464,7 +464,7 @@ namespace netlist
 
 	private:
 		core_device_t & m_device;
-	};
+};
 
 
 	// -----------------------------------------------------------------------------
@@ -699,6 +699,7 @@ namespace netlist
 		void reset();
 
 		void add_terminal(core_terminal_t &terminal);
+		void remove_terminal(core_terminal_t &terminal);
 
 		bool is_logic() const NL_NOEXCEPT;
 		bool is_analog() const NL_NOEXCEPT;
@@ -950,21 +951,39 @@ namespace netlist
 		pstring m_param;
 	};
 
-	class param_model_t final : public param_str_t
+	class param_model_t : public param_str_t
 	{
 	public:
+
+		class value_t
+		{
+		public:
+			value_t(param_model_t &param, const pstring name)
+			{
+				m_value = param.model_value(name);
+			}
+			double operator()() const { return m_value; }
+			operator double() const { return m_value; }
+		private:
+			double m_value;
+		};
+
+		friend class value_t;
+
 		param_model_t(device_t &device, const pstring name, const pstring val)
 		: param_str_t(device, name, val) { }
 
-		/* these should be cached! */
-		nl_double model_value(const pstring &entity);
-		const pstring model_value_str(const pstring &entity);
-		const pstring model_type();
+		const pstring model_value_str(const pstring &entity) /*const*/;
+		const pstring model_type() /*const*/;
 	protected:
 		virtual void changed() override;
+		nl_double model_value(const pstring &entity) /*const*/;
 	private:
+		/* hide this */
+		void setTo(const pstring &param) = delete;
 		model_map_t m_map;
 	};
+
 
 	class param_data_t : public param_str_t
 	{
@@ -1081,19 +1100,17 @@ namespace netlist
 
 		setup_t &setup();
 
-#if 1
-		template<class C>
-		void register_sub(const pstring &name, std::unique_ptr<C> &dev)
+		template<class C, typename... Args>
+		void register_sub(const pstring &name, std::unique_ptr<C> &dev, const Args&... args)
 		{
-			dev.reset(new C(*this, name));
+			dev.reset(new C(*this, name, args...));
 		}
-#endif
 
 		void register_subalias(const pstring &name, detail::core_terminal_t &term);
 		void register_subalias(const pstring &name, const pstring &aliased);
 
-		void connect_late(const pstring &t1, const pstring &t2);
-		void connect_late(detail::core_terminal_t &t1, detail::core_terminal_t &t2);
+		void connect(const pstring &t1, const pstring &t2);
+		void connect(detail::core_terminal_t &t1, detail::core_terminal_t &t2);
 		void connect_post_start(detail::core_terminal_t &t1, detail::core_terminal_t &t2);
 	protected:
 
@@ -1187,6 +1204,7 @@ namespace netlist
 		setup_t &setup() { return *m_setup; }
 
 		void register_dev(plib::owned_ptr<core_device_t> dev);
+		void remove_dev(core_device_t *dev);
 
 		detail::net_t *find_net(const pstring &name);
 		const logic_family_desc_t *family_from_model(const pstring &model);
@@ -1246,7 +1264,7 @@ namespace netlist
 		plib::dynlib &lib() { return *m_lib; }
 
 		/* sole use is to manage lifetime of net objects */
-		std::vector<plib::owned_ptr<detail::net_t>>                           m_nets;
+		std::vector<plib::owned_ptr<detail::net_t>> m_nets;
 
 	protected:
 		void print_stats() const;
@@ -1278,7 +1296,7 @@ namespace netlist
 		std::vector<plib::owned_ptr<core_device_t>> m_devices;
 		/* sole use is to manage lifetime of family objects */
 		std::vector<std::pair<pstring, std::unique_ptr<logic_family_desc_t>>> m_family_cache;
-	};
+};
 
 	// -----------------------------------------------------------------------------
 	// Support classes for devices
@@ -1445,11 +1463,11 @@ namespace netlist
 
 	inline void analog_output_t::set_Q(const nl_double newQ) NL_NOEXCEPT
 	{
-		if (newQ != net().Q_Analog())
+		if (newQ != m_my_net.Q_Analog())
 		{
-			net().m_cur_Analog = newQ;
-			net().toggle_new_Q();
-			net().push_to_queue(NLTIME_FROM_NS(1));
+			m_my_net.m_cur_Analog = newQ;
+			m_my_net.toggle_new_Q();
+			m_my_net.push_to_queue(NLTIME_FROM_NS(1));
 		}
 	}
 

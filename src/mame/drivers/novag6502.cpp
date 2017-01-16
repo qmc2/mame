@@ -11,13 +11,12 @@
     such as Arena(in editmode).
 
     TODO:
-    - sforte/sexpert internal layout button panel
+    - cforteb emulation (was initially sforteba romset)
     - verify supercon IRQ and beeper frequency
     - why is sforte H and 1 leds always on?
-    - sforte/sexpert optional ACIA (only works in version C?)
     - printer port
 
--------------------------------------------------------------------------------
+******************************************************************************
 
 Super Constellation Chess Computer (model 844):
 - UMC UM6502C @ 4 MHz (8MHz XTAL), 600Hz? IRQ(source unknown?)
@@ -25,14 +24,25 @@ Super Constellation Chess Computer (model 844):
 - TTL, buzzer, 24 LEDs, 8*8 chessboard buttons
 - external ports for clock and printer, not emulated here
 
--------------------------------------------------------------------------------
+
+******************************************************************************
+
+Constellation Forte:
+- x
+
+When it was first added to MAME as skeleton driver in mmodular.c, this romset
+was assumed to be Super Forte B, but it definitely isn't. I/O is similar to
+Super Constellation, let's assume for now it's a Constellation Forte B.
+
+
+******************************************************************************
 
 Super Expert (model 878/887/902):
 - 65C02 @ 5MHz or 6MHz (10MHz or 12MHz XTAL)
 - 8KB RAM battery-backed, 3*32KB ROM
 - HD44780 LCD controller (16x1)
 - beeper(32KHz/32), IRQ(32KHz/128) via MC14060
-- optional R65C51P2 ACIA @ 1.8432MHz, for IBM PC interface
+- optional R65C51P2 ACIA @ 1.8432MHz, for IBM PC interface (only works in version C?)
 - printer port, magnetic sensors, 8*8 chessboard leds
 
 I/O via TTL, hardware design was very awkward.
@@ -44,6 +54,8 @@ instead of magnet sensors.
 #include "emu.h"
 #include "cpu/m6502/m6502.h"
 #include "cpu/m6502/m65c02.h"
+#include "bus/rs232/rs232.h"
+#include "machine/mos6551.h"
 #include "machine/nvram.h"
 #include "sound/beep.h"
 #include "video/hd44780.h"
@@ -475,6 +487,15 @@ static ADDRESS_MAP_START( supercon_map, AS_PROGRAM, 8, novag6502_state )
 ADDRESS_MAP_END
 
 
+// Constellation Forte
+
+static ADDRESS_MAP_START( cforte_map, AS_PROGRAM, 8, novag6502_state )
+	ADDRESS_MAP_UNMAP_HIGH
+	AM_RANGE(0x0000, 0x0fff) AM_RAM
+	AM_RANGE(0x2000, 0xffff) AM_ROM
+ADDRESS_MAP_END
+
+
 // Super Expert / Super Forte
 
 static ADDRESS_MAP_START( sforte_map, AS_PROGRAM, 8, novag6502_state )
@@ -485,7 +506,7 @@ static ADDRESS_MAP_START( sforte_map, AS_PROGRAM, 8, novag6502_state )
 	AM_RANGE(0x1ff3, 0x1ff3) AM_WRITENOP // printer
 	AM_RANGE(0x1ff6, 0x1ff6) AM_WRITE(sforte_lcd_control_w)
 	AM_RANGE(0x1ff7, 0x1ff7) AM_WRITE(sforte_lcd_data_w)
-	AM_RANGE(0x1ffc, 0x1fff) AM_NOP // ACIA
+	AM_RANGE(0x1ffc, 0x1fff) AM_DEVREADWRITE("acia", mos6551_device, read, write)
 	AM_RANGE(0x2000, 0x7fff) AM_ROM
 	AM_RANGE(0x8000, 0xffff) AM_ROMBANK("bank1")
 ADDRESS_MAP_END
@@ -788,7 +809,25 @@ static MACHINE_CONFIG_START( supercon, novag6502_state )
 
 	/* sound hardware */
 	MCFG_SPEAKER_STANDARD_MONO("mono")
-	MCFG_SOUND_ADD("beeper", BEEP, 1200) // guessed
+	MCFG_SOUND_ADD("beeper", BEEP, 1000) // guessed
+	MCFG_SOUND_ROUTE(ALL_OUTPUTS, "mono", 0.25)
+MACHINE_CONFIG_END
+
+static MACHINE_CONFIG_START( cforte, novag6502_state )
+
+	/* basic machine hardware */
+	MCFG_CPU_ADD("maincpu", M65C02, 5000000) // 5MHz
+	MCFG_CPU_PERIODIC_INT_DRIVER(novag6502_state, irq0_line_hold, 250) // guessed
+	MCFG_CPU_PROGRAM_MAP(cforte_map)
+
+	//MCFG_NVRAM_ADD_1FILL("nvram")
+
+	MCFG_TIMER_DRIVER_ADD_PERIODIC("display_decay", novag6502_state, display_decay_tick, attotime::from_msec(1))
+	//MCFG_DEFAULT_LAYOUT(layout_novag_cforte)
+
+	/* sound hardware */
+	MCFG_SPEAKER_STANDARD_MONO("mono")
+	MCFG_SOUND_ADD("beeper", BEEP, 1000) // guessed
 	MCFG_SOUND_ROUTE(ALL_OUTPUTS, "mono", 0.25)
 MACHINE_CONFIG_END
 
@@ -797,9 +836,19 @@ static MACHINE_CONFIG_START( sexpert, novag6502_state )
 	/* basic machine hardware */
 	MCFG_CPU_ADD("maincpu", M65C02, XTAL_10MHz/2) // or XTAL_12MHz/2
 	MCFG_CPU_PROGRAM_MAP(sexpert_map)
-	MCFG_TIMER_DRIVER_ADD_PERIODIC("irq_on", novag6502_state, irq_on, attotime::from_hz(XTAL_32_768kHz/128))
+	MCFG_TIMER_DRIVER_ADD_PERIODIC("irq_on", novag6502_state, irq_on, attotime::from_hz(XTAL_32_768kHz/128)) // 256Hz
 	MCFG_TIMER_START_DELAY(attotime::from_hz(XTAL_32_768kHz/128) - attotime::from_nsec(21500)) // active for 21.5us
 	MCFG_TIMER_DRIVER_ADD_PERIODIC("irq_off", novag6502_state, irq_off, attotime::from_hz(XTAL_32_768kHz/128))
+
+	MCFG_DEVICE_ADD("acia", MOS6551, 0) // R65C51P2 - RTS to CTS, DCD to GND
+	MCFG_MOS6551_XTAL(XTAL_1_8432MHz)
+	MCFG_MOS6551_IRQ_HANDLER(INPUTLINE("maincpu", M6502_NMI_LINE))
+	MCFG_MOS6551_RTS_HANDLER(DEVWRITELINE("acia", mos6551_device, write_cts))
+	MCFG_MOS6551_TXD_HANDLER(DEVWRITELINE("rs232", rs232_port_device, write_txd))
+	MCFG_MOS6551_DTR_HANDLER(DEVWRITELINE("rs232", rs232_port_device, write_dtr))
+	MCFG_RS232_PORT_ADD("rs232", default_rs232_devices, nullptr)
+	MCFG_RS232_RXD_HANDLER(DEVWRITELINE("acia", mos6551_device, write_rxd))
+	MCFG_RS232_DSR_HANDLER(DEVWRITELINE("acia", mos6551_device, write_dsr))
 	
 	MCFG_NVRAM_ADD_1FILL("nvram")
 
@@ -825,7 +874,7 @@ static MACHINE_CONFIG_START( sexpert, novag6502_state )
 
 	/* sound hardware */
 	MCFG_SPEAKER_STANDARD_MONO("mono")
-	MCFG_SOUND_ADD("beeper", BEEP, XTAL_32_768kHz/32)
+	MCFG_SOUND_ADD("beeper", BEEP, XTAL_32_768kHz/32) // 1024Hz
 	MCFG_SOUND_ROUTE(ALL_OUTPUTS, "mono", 0.25)
 MACHINE_CONFIG_END
 
@@ -851,11 +900,25 @@ ROM_START( supercon )
 ROM_END
 
 
-ROM_START( sforte )
+ROM_START( cforteb )
+	ROM_REGION( 0x18000, "maincpu", 0 )
+	ROM_LOAD("forte_b_l.u3", 0x0000, 0x8000, CRC(e3d194a1) SHA1(80457580d7c57e07895fd14bfdaf14b30952afca) )
+	ROM_LOAD("forte_b_h.u1", 0x8000, 0x8000, CRC(dd824be8) SHA1(cd8666b6b525887f9fc48a730b71ceabcf07f3b9) )
+ROM_END
+
+
+ROM_START( sfortea )
 	ROM_REGION( 0x18000, "maincpu", 0 )
 	ROM_LOAD("sfalo.u3", 0x0000, 0x8000, CRC(86e0230a) SHA1(0d6e18a17e636b8c7292c8f331349d361892d1a8) )
 	ROM_LOAD("sfahi.u1", 0x8000, 0x8000, CRC(81c02746) SHA1(0bf68b68ade5a3263bead88da0a8965fc71483c1) )
 	ROM_LOAD("sfabook.u2", 0x10000, 0x8000, CRC(3e42cf7c) SHA1(b2faa36a127e08e5755167a25ed4a07f12d62957) )
+ROM_END
+
+ROM_START( sfortea1 )
+	ROM_REGION( 0x18000, "maincpu", 0 )
+	ROM_LOAD("sfa_lo.u3", 0x0000, 0x8000, CRC(78734bfd) SHA1(b6d8e9efccee6f6d0b0cd257a82162bf8ccec719) )
+	ROM_LOAD("sfa_hi_1.u1", 0x8000, 0x8000, CRC(e5e84580) SHA1(bae55c3da7b720bf6ccfb450e383c53cebd5e9ef) )
+	ROM_LOAD("sfa_hi_0.u2", 0x10000, 0x8000, CRC(3e42cf7c) SHA1(b2faa36a127e08e5755167a25ed4a07f12d62957) )
 ROM_END
 
 ROM_START( sforteb )
@@ -865,22 +928,15 @@ ROM_START( sforteb )
 	ROM_LOAD("forte_b_hi0.u2", 0x10000, 0x8000, CRC(bb07ad52) SHA1(30cf9005021ab2d7b03facdf2d3588bc94dc68a6) )
 ROM_END
 
-ROM_START( sforteba )
-	ROM_REGION( 0x18000, "maincpu", 0 )
-	ROM_LOAD("forte_b_l.u3", 0x0000, 0x8000, CRC(e3d194a1) SHA1(80457580d7c57e07895fd14bfdaf14b30952afca) )
-	ROM_LOAD("forte_b_h.u1", 0x8000, 0x8000, CRC(dd824be8) SHA1(cd8666b6b525887f9fc48a730b71ceabcf07f3b9) )
-	ROM_LOAD("forte_b_hi0.u2", 0x10000, 0x8000, BAD_DUMP CRC(bb07ad52) SHA1(30cf9005021ab2d7b03facdf2d3588bc94dc68a6) )
-ROM_END
-
 ROM_START( sfortec )
 	ROM_REGION( 0x18000, "maincpu", 0 )
-	ROM_LOAD("sfclow.u3", 0x0000, 0x8000, CRC(f040cf30) SHA1(1fc1220b8ed67cdffa3866d230ce001721cf684f) )
-	ROM_LOAD("sfchi.u1", 0x8000, 0x8000, CRC(0f926b32) SHA1(9c7270ecb3f41dd9172a9a7928e6e04e64b2a340) )
-	ROM_LOAD("sfcbook.u2", 0x10000, 0x8000, CRC(c6a1419a) SHA1(017a0ffa9aa59438c879624a7ddea2071d1524b8) )
+	ROM_LOAD("sfl_c_111.u3", 0x0000, 0x8000, CRC(f040cf30) SHA1(1fc1220b8ed67cdffa3866d230ce001721cf684f) ) // Toshiba TC57256AD-12
+	ROM_LOAD("sfh_c_111.u1", 0x8000, 0x8000, CRC(0f926b32) SHA1(9c7270ecb3f41dd9172a9a7928e6e04e64b2a340) ) // NEC D27C256AD-12
+	ROM_LOAD("h0_c_c26.u2", 0x10000, 0x8000, CRC(c6a1419a) SHA1(017a0ffa9aa59438c879624a7ddea2071d1524b8) ) // Toshiba TC57256AD-12
 ROM_END
 
 
-ROM_START( sexpert )
+ROM_START( sexperta )
 	ROM_REGION( 0x18000, "maincpu", 0 )
 	ROM_LOAD("se_lo_b15.u3", 0x0000, 0x8000, CRC(6cc9527c) SHA1(29bab809399f2863a88a9c41535ecec0a4fd65ea) )
 	ROM_LOAD("se_hi1_b15.u1", 0x8000, 0x8000, CRC(6e57f0c0) SHA1(ea44769a6f54721fd4543366bda932e86e497d43) )
@@ -896,14 +952,14 @@ ROM_END
 
 ROM_START( sexpertc )
 	ROM_REGION( 0x18000, "maincpu", 0 )
-	ROM_LOAD("se_lo_V3.6.u3", 0x0000, 0x8000, CRC(5a29105e) SHA1(be37bb29b530dbba847a5e8d27d81b36525e47f7) )
+	ROM_LOAD("se_lo_v3.6.u3", 0x0000, 0x8000, CRC(5a29105e) SHA1(be37bb29b530dbba847a5e8d27d81b36525e47f7) )
 	ROM_LOAD("se_hi1.u1", 0x8000, 0x8000, CRC(0085c2c4) SHA1(d84bf4afb022575db09dd9dc12e9b330acce35fa) )
 	ROM_LOAD("se_hi0.u2", 0x10000, 0x8000, CRC(2d085064) SHA1(76162322aa7d23a5c07e8356d0bbbb33816419af) )
 ROM_END
 
-ROM_START( sexpertca )
+ROM_START( sexpertc1 )
 	ROM_REGION( 0x18000, "maincpu", 0 )
-	ROM_LOAD("se_lo_V1.2.u3", 0x0000, 0x8000, CRC(43ed7a9e) SHA1(273c485e5be6b107b6c5c448003ba7686d4a6d06) )
+	ROM_LOAD("se_lo_v1.2.u3", 0x0000, 0x8000, CRC(43ed7a9e) SHA1(273c485e5be6b107b6c5c448003ba7686d4a6d06) )
 	ROM_LOAD("se_hi1.u1", 0x8000, 0x8000, CRC(0085c2c4) SHA1(d84bf4afb022575db09dd9dc12e9b330acce35fa) )
 	ROM_LOAD("se_hi0.u2", 0x10000, 0x8000, CRC(2d085064) SHA1(76162322aa7d23a5c07e8356d0bbbb33816419af) )
 ROM_END
@@ -914,15 +970,17 @@ ROM_END
     Drivers
 ******************************************************************************/
 
-/*    YEAR  NAME       PARENT   COMPAT  MACHINE   INPUT     INIT                      COMPANY, FULLNAME, FLAGS */
-CONS( 1984, supercon,  0,       0,      supercon, supercon, driver_device,   0,       "Novag", "Super Constellation", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+/*    YEAR  NAME       PARENT    COMPAT  MACHINE   INPUT     INIT                      COMPANY, FULLNAME, FLAGS */
+CONS( 1984, supercon,  0,        0,      supercon, supercon, driver_device,   0,       "Novag", "Super Constellation", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
 
-CONS( 1987, sforte,    0,       0,      sforte,   sforte,   novag6502_state, sexpert, "Novag", "Super Forte (version A)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
-CONS( 1988, sforteb,   sforte,  0,      sforte,   sforte,   novag6502_state, sexpert, "Novag", "Super Forte (version B, set 1)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
-CONS( 1988, sforteba,  sforte,  0,      sforte,   sforte,   novag6502_state, sexpert, "Novag", "Super Forte (version B, set 2)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK | MACHINE_NOT_WORKING ) // bad dump
-CONS( 1990, sfortec,   sforte,  0,      sforte,   sforte,   novag6502_state, sexpert, "Novag", "Super Forte (version C)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+CONS( 1986, cforteb,   0,        0,      cforte,   supercon, driver_device,   0,       "Novag", "Constellation Forte (version B)", MACHINE_SUPPORTS_SAVE | MACHINE_NOT_WORKING )
 
-CONS( 1987, sexpert,   0,       0,      sexpert,  sexpert,  novag6502_state, sexpert, "Novag", "Super Expert (version A)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
-CONS( 1988, sexpertb,  sexpert, 0,      sexpert,  sexpert,  novag6502_state, sexpert, "Novag", "Super Expert (version B)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
-CONS( 1990, sexpertc,  sexpert, 0,      sexpert,  sexpert,  novag6502_state, sexpert, "Novag", "Super Expert (version C 3.6)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
-CONS( 1990, sexpertca, sexpert, 0,      sexpert,  sexpert,  novag6502_state, sexpert, "Novag", "Super Expert (version C 1.2)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+CONS( 1987, sfortea,   0,        0,      sforte,   sforte,   novag6502_state, sexpert, "Novag", "Super Forte (version A, set 1)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+CONS( 1987, sfortea1,  sfortea,  0,      sforte,   sforte,   novag6502_state, sexpert, "Novag", "Super Forte (version A, set 2)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+CONS( 1988, sforteb,   sfortea,  0,      sforte,   sforte,   novag6502_state, sexpert, "Novag", "Super Forte (version B)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+CONS( 1990, sfortec,   sfortea,  0,      sforte,   sforte,   novag6502_state, sexpert, "Novag", "Super Forte (version C)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+
+CONS( 1987, sexperta,  0,        0,      sexpert,  sexpert,  novag6502_state, sexpert, "Novag", "Super Expert (version A)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+CONS( 1988, sexpertb,  sexperta, 0,      sexpert,  sexpert,  novag6502_state, sexpert, "Novag", "Super Expert (version B)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+CONS( 1990, sexpertc,  sexperta, 0,      sexpert,  sexpert,  novag6502_state, sexpert, "Novag", "Super Expert (version C, V3.6)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+CONS( 1990, sexpertc1, sexperta, 0,      sexpert,  sexpert,  novag6502_state, sexpert, "Novag", "Super Expert (version C, V1.2)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )

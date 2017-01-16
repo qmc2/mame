@@ -14,6 +14,7 @@
 extern device_type const M68705;
 extern device_type const M68705P3;
 extern device_type const M68705P5;
+extern device_type const M68705R3;
 extern device_type const M68705U3;
 
 
@@ -81,7 +82,7 @@ protected:
 	devcb = &m68705_new_device::set_port_cb_w<2>(*device, DEVCB_##obj);
 
 
-class m68705_new_device : public m68705_device
+class m68705_new_device : public m68705_device, public device_nvram_interface
 {
 public:
 	// static configuration helpers
@@ -94,11 +95,6 @@ protected:
 	enum
 	{
 		PORT_COUNT = 4
-	};
-
-	enum
-	{
-		TIMER_68705_PRESCALER_EXPIRED,
 	};
 
 	m68705_new_device(
@@ -124,44 +120,67 @@ protected:
 	template <std::size_t N> DECLARE_WRITE8_MEMBER(port_ddr_w);
 	template <std::size_t N> void port_cb_w();
 
-	DECLARE_READ8_MEMBER(internal_68705_tdr_r);
-	DECLARE_WRITE8_MEMBER(internal_68705_tdr_w);
-	DECLARE_READ8_MEMBER(internal_68705_tcr_r);
-	DECLARE_WRITE8_MEMBER(internal_68705_tcr_w);
+	DECLARE_READ8_MEMBER(tdr_r);
+	DECLARE_WRITE8_MEMBER(tdr_w);
+	DECLARE_READ8_MEMBER(tcr_r);
+	DECLARE_WRITE8_MEMBER(tcr_w);
+
+	DECLARE_READ8_MEMBER(misc_r);
+	DECLARE_WRITE8_MEMBER(misc_w);
 
 	DECLARE_READ8_MEMBER(pcr_r);
 	DECLARE_WRITE8_MEMBER(pcr_w);
 
-	TIMER_CALLBACK_MEMBER(timer_68705_increment);
+	DECLARE_READ8_MEMBER(acr_r);
+	DECLARE_WRITE8_MEMBER(acr_w);
+	DECLARE_READ8_MEMBER(arr_r);
+	DECLARE_WRITE8_MEMBER(arr_w);
 
-	virtual void device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr) override;
-
-	// device-level overrides
 	virtual void device_start() override;
 	virtual void device_reset() override;
 	virtual void execute_set_input(int inputnum, int state) override;
+	virtual void nvram_default() override;
+	virtual void nvram_read(emu_file &file) override;
+	virtual void nvram_write(emu_file &file) override;
 
-	u8 m_tdr;
-	u8 m_tcr;
+	virtual void burn_cycles(unsigned count) override;
 
-	/* Timers */
-	emu_timer *m_68705_timer;
+	u8 *const get_user_rom() const { return &m_user_rom[0]; }
+	virtual u8 get_mask_options() const = 0;
 
 private:
+	bool    tcr_tir() const     { return BIT(m_tcr, 7); }
+	bool    tcr_tim() const     { return BIT(m_tcr, 6); }
+	bool    tcr_tin() const     { return BIT(m_tcr, 5); }
+	bool    tcr_tie() const     { return BIT(m_tcr, 4); }
+	bool    tcr_topt() const    { return BIT(m_tcr, 3); }
+	u8      tcr_ps() const      { return m_tcr & 0x07; }
+
+	bool    pcr_vpon() const    { return !BIT(m_pcr, 2); }
+	bool    pcr_pge() const     { return !BIT(m_pcr, 1); }
+	bool    pcr_ple() const     { return !BIT(m_pcr, 0); }
+
 	required_region_ptr<u8> m_user_rom;
 
-	bool                    m_port_open_drain[PORT_COUNT];
-	u8                      m_port_mask[PORT_COUNT];
-	u8                      m_port_input[PORT_COUNT];
-	u8                      m_port_latch[PORT_COUNT];
-	u8                      m_port_ddr[PORT_COUNT];
-	devcb_read8             m_port_cb_r[PORT_COUNT];
-	devcb_write8            m_port_cb_w[PORT_COUNT];
+	// digital I/O
+	bool            m_port_open_drain[PORT_COUNT];
+	u8              m_port_mask[PORT_COUNT];
+	u8              m_port_input[PORT_COUNT];
+	u8              m_port_latch[PORT_COUNT];
+	u8              m_port_ddr[PORT_COUNT];
+	devcb_read8     m_port_cb_r[PORT_COUNT];
+	devcb_write8    m_port_cb_w[PORT_COUNT];
 
-	u8                      m_vihtp;
-	u8                      m_pcr;
-	u8                      m_pl_data;
-	u16                     m_pl_addr;
+	// timer/counter
+	u8  m_prescaler;
+	u8  m_tdr;
+	u8  m_tcr;
+
+	// EPROM control
+	u8  m_vihtp;
+	u8  m_pcr;
+	u8  m_pl_data;
+	u16 m_pl_addr;
 };
 
 
@@ -186,6 +205,84 @@ protected:
 			char const *name,
 			char const *shortname,
 			char const *source);
+
+	virtual offs_t disasm_disassemble(
+			std::ostream &stream,
+			offs_t pc,
+			const uint8_t *oprom,
+			const uint8_t *opram,
+			uint32_t options) override;
+};
+
+
+// ======================> m68705u_device
+
+class m68705u_device : public m68705_new_device
+{
+public:
+	DECLARE_WRITE8_MEMBER(pa_w) { port_input_w<0>(space, offset, data, mem_mask); }
+	DECLARE_WRITE8_MEMBER(pb_w) { port_input_w<1>(space, offset, data, mem_mask); }
+	DECLARE_WRITE8_MEMBER(pc_w) { port_input_w<2>(space, offset, data, mem_mask); }
+	DECLARE_WRITE8_MEMBER(pd_w) { port_input_w<3>(space, offset, data, mem_mask); } // TODO: PD6 is also /INT2
+
+protected:
+	DECLARE_ADDRESS_MAP(u_map, 8);
+
+	m68705u_device(
+			machine_config const &mconfig,
+			char const *tag,
+			device_t *owner,
+			u32 clock,
+			device_type type,
+			char const *name,
+			address_map_delegate internal_map,
+			char const *shortname,
+			char const *source);
+	m68705u_device(
+			machine_config const &mconfig,
+			char const *tag,
+			device_t *owner,
+			u32 clock,
+			device_type type,
+			char const *name,
+			char const *shortname,
+			char const *source);
+
+	virtual offs_t disasm_disassemble(
+			std::ostream &stream,
+			offs_t pc,
+			const uint8_t *oprom,
+			const uint8_t *opram,
+			uint32_t options) override;
+};
+
+
+// ======================> m68705r_device
+
+class m68705r_device : public m68705u_device
+{
+public:
+	// TODO: voltage inputs for ADC (shared with digital port D pins)
+
+protected:
+	DECLARE_ADDRESS_MAP(r_map, 8);
+
+	m68705r_device(
+			machine_config const &mconfig,
+			char const *tag,
+			device_t *owner,
+			u32 clock,
+			device_type type,
+			char const *name,
+			char const *shortname,
+			char const *source);
+
+	virtual offs_t disasm_disassemble(
+			std::ostream &stream,
+			offs_t pc,
+			const uint8_t *oprom,
+			const uint8_t *opram,
+			uint32_t options) override;
 };
 
 
@@ -198,6 +295,8 @@ public:
 
 protected:
 	virtual tiny_rom_entry const *device_rom_region() const override;
+
+	virtual u8 get_mask_options() const override;
 };
 
 
@@ -210,25 +309,36 @@ public:
 
 protected:
 	virtual tiny_rom_entry const *device_rom_region() const override;
+
+	virtual u8 get_mask_options() const override;
+};
+
+
+// ======================> m68705r3_device
+
+class m68705r3_device : public m68705r_device
+{
+public:
+	m68705r3_device(machine_config const &mconfig, char const *tag, device_t *owner, u32 clock);
+
+protected:
+	virtual tiny_rom_entry const *device_rom_region() const override;
+
+	virtual u8 get_mask_options() const override;
 };
 
 
 // ======================> m68705u3_device
 
-class m68705u3_device : public m68705_new_device
+class m68705u3_device : public m68705u_device
 {
 public:
 	m68705u3_device(machine_config const &mconfig, char const *tag, device_t *owner, u32 clock);
 
-	DECLARE_WRITE8_MEMBER(pa_w) { port_input_w<0>(space, offset, data, mem_mask); }
-	DECLARE_WRITE8_MEMBER(pb_w) { port_input_w<1>(space, offset, data, mem_mask); }
-	DECLARE_WRITE8_MEMBER(pc_w) { port_input_w<2>(space, offset, data, mem_mask); }
-	DECLARE_WRITE8_MEMBER(pd_w) { port_input_w<3>(space, offset, data, mem_mask); } // TODO: PD6 is also /INT2
-
 protected:
-	DECLARE_ADDRESS_MAP(u_map, 8);
-
 	virtual tiny_rom_entry const *device_rom_region() const override;
+
+	virtual u8 get_mask_options() const override;
 };
 
 

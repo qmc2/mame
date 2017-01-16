@@ -18,6 +18,8 @@
 #include "devices/nlid_proxy.h"
 #include "macro/nlm_base.h"
 
+#include "nl_errstr.h"
+
 namespace netlist
 {
 namespace detail
@@ -248,7 +250,7 @@ detail::device_object_t::type_t detail::device_object_t::type() const
 		return param_t::OUTPUT;
 	else
 	{
-		netlist().log().fatal("Unknown type for object {1} ", name());
+		netlist().log().fatal(MF_1_UNKNOWN_TYPE_FOR_OBJECT, name());
 		return type_t::TERMINAL; // please compiler
 	}
 }
@@ -295,8 +297,22 @@ void netlist_t::register_dev(plib::owned_ptr<core_device_t> dev)
 {
 	for (auto & d : m_devices)
 		if (d->name() == dev->name())
-			log().fatal("Error adding {1} to device list. Duplicate name \n", d->name());
+			log().fatal(MF_1_DUPLICATE_NAME_DEVICE_LIST, d->name());
 	m_devices.push_back(std::move(dev));
+}
+
+void netlist_t::remove_dev(core_device_t *dev)
+{
+    m_devices.erase(
+        std::remove_if(
+            m_devices.begin(),
+			m_devices.end(),
+            [&] (plib::owned_ptr<core_device_t> const& p)
+            {
+    			return p.get() == dev;
+            }),
+			m_devices.end()
+        );
 }
 
 const logic_family_desc_t *netlist_t::family_from_model(const pstring &model)
@@ -399,7 +415,7 @@ void netlist_t::start()
 	{
 		for (auto &p : m_nets)
 			if (p->is_analog())
-				log().fatal("No solver found for this netlist although analog elements are present\n");
+				log().fatal(MF_0_NO_SOLVER);
 	}
 	else
 		m_solver->post_start();
@@ -665,12 +681,12 @@ void device_t::register_subalias(const pstring &name, const pstring &aliased)
 	setup().register_alias_nofqn(alias, aliased_fqn);
 }
 
-void device_t::connect_late(detail::core_terminal_t &t1, detail::core_terminal_t &t2)
+void device_t::connect(detail::core_terminal_t &t1, detail::core_terminal_t &t2)
 {
 	setup().register_link_fqn(t1.name(), t2.name());
 }
 
-void device_t::connect_late(const pstring &t1, const pstring &t2)
+void device_t::connect(const pstring &t1, const pstring &t2)
 {
 	setup().register_link_fqn(name() + "." + t1, name() + "." + t2);
 }
@@ -681,7 +697,7 @@ void device_t::connect_late(const pstring &t1, const pstring &t2)
 void device_t::connect_post_start(detail::core_terminal_t &t1, detail::core_terminal_t &t2)
 {
 	if (!setup().connect(t1, t2))
-		netlist().log().fatal("Error connecting {1} to {2}\n", t1.name(), t2.name());
+		netlist().log().fatal(MF_2_ERROR_CONNECTING_1_TO_2, t1.name(), t2.name());
 }
 
 
@@ -722,10 +738,6 @@ detail::net_t::net_t(netlist_t &nl, const pstring &aname, core_terminal_t *mr)
 	, m_cur_Analog(*this, "m_cur_Analog", 0.0)
 {
 	m_railterminal = mr;
-	if (mr != nullptr)
-		nl.m_nets.push_back(plib::owned_ptr<net_t>(this, false));
-	else
-		nl.m_nets.push_back(plib::owned_ptr<net_t>(this, true));
 }
 
 detail::net_t::~net_t()
@@ -834,7 +846,8 @@ void detail::net_t::add_terminal(detail::core_terminal_t &terminal)
 {
 	for (auto t : m_core_terms)
 		if (t == &terminal)
-			netlist().log().fatal("net {1}: duplicate terminal {2}", name(), t->name());
+			netlist().log().fatal(MF_2_NET_1_DUPLICATE_TERMINAL_2, name(),
+					t->name());
 
 	terminal.set_net(this);
 
@@ -842,6 +855,20 @@ void detail::net_t::add_terminal(detail::core_terminal_t &terminal)
 
 	if (terminal.state() != logic_t::STATE_INP_PASSIVE)
 		m_active++;
+}
+
+void detail::net_t::remove_terminal(detail::core_terminal_t &terminal)
+{
+	if (plib::container::contains(m_core_terms, &terminal))
+	{
+		terminal.set_net(nullptr);
+		plib::container::remove(m_core_terms, &terminal);
+	}
+	else
+		netlist().log().fatal(MF_2_REMOVE_TERMINAL_1_FROM_NET_2, terminal.name(),
+				this->name());
+	if (terminal.state() != logic_t::STATE_INP_PASSIVE)
+		m_active--;
 }
 
 void detail::net_t::move_connections(detail::net_t &dest_net)
@@ -908,7 +935,7 @@ void detail::core_terminal_t::set_net(net_t *anet)
 	m_net = anet;
 }
 
-	void detail::core_terminal_t::clear_net()
+void detail::core_terminal_t::clear_net()
 {
 	m_net = nullptr;
 }
@@ -970,6 +997,7 @@ logic_output_t::logic_output_t(core_device_t &dev, const pstring &aname)
 	, m_my_net(dev.netlist(), name() + ".net", this)
 {
 	this->set_net(&m_my_net);
+	netlist().m_nets.push_back(plib::owned_ptr<logic_net_t>(&m_my_net, false));
 	set_logic_family(dev.logic_family());
 	netlist().setup().register_term(*this);
 }
@@ -980,7 +1008,8 @@ logic_output_t::~logic_output_t()
 
 void logic_output_t::initial(const netlist_sig_t val)
 {
-	net().initial(val);
+	if (has_net())
+		net().initial(val);
 }
 
 // ----------------------------------------------------------------------------------------
@@ -1005,6 +1034,7 @@ analog_output_t::analog_output_t(core_device_t &dev, const pstring &aname)
 	: analog_t(dev, aname, STATE_OUT)
 	, m_my_net(dev.netlist(), name() + ".net", this)
 {
+	netlist().m_nets.push_back(plib::owned_ptr<analog_net_t>(&m_my_net, false));
 	this->set_net(&m_my_net);
 
 	net().m_cur_Analog = NL_FCONST(0.0);
@@ -1063,7 +1093,7 @@ param_t::param_type_t param_t::param_type() const
 		return POINTER;
 	else
 	{
-		netlist().log().fatal("Can not determine param_type for {1}", name());
+		netlist().log().fatal(MF_1_UNKNOWN_PARAM_TYPE, name());
 		return POINTER; /* Please compiler */
 	}
 }
@@ -1143,6 +1173,7 @@ param_ptr_t::~param_ptr_t()
 
 void param_model_t::changed()
 {
+	netlist().log().fatal("Models can not be changed at runtime");
 	m_map.clear();
 }
 
