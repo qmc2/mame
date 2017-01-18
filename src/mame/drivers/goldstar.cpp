@@ -4128,13 +4128,13 @@ INPUT_PORTS_END
 static INPUT_PORTS_START( mbstar )
 	PORT_START("IN0")
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_1) PORT_NAME("IN0-1")
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_2) PORT_NAME("IN0-2")
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_2) PORT_NAME("Increment top's 'S' (bet?)")  // Increment top's 'S' (looks like bet)
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_3) PORT_NAME("IN0-3")
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_4) PORT_NAME("IN0-4")
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_5) PORT_NAME("IN0-5")
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_5) PORT_NAME("Collect")  // Collect. Also used to blank the BK.
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_6) PORT_NAME("IN0-6")
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_7) PORT_NAME("IN0-7")
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_8) PORT_NAME("IN0-8")
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_7) PORT_NAME("Bookkeeping: Down")  // BK: down.
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_8) PORT_NAME("Bookkeeping: Set/Enter - Start")  // BK: enter. (start?)
 
 	PORT_START("IN1")
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_Q) PORT_NAME("IN1-1")
@@ -4160,21 +4160,21 @@ static INPUT_PORTS_START( mbstar )
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_Z) PORT_NAME("IN3-1")
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_X) PORT_NAME("IN3-2")
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_C) PORT_NAME("IN3-3")
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_V) PORT_NAME("coin 1")    // coin 1
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_B) PORT_NAME("coin 2")    // coin 2
-	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_N) PORT_NAME("remote 1")  // remote 1
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_M) PORT_NAME("remote 2")  // remote 2
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_L) PORT_NAME("coin 3")    // coin 3
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_V) PORT_NAME("Coin 1") PORT_IMPULSE(2)    // coin 1
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_B) PORT_NAME("Coin 2") PORT_IMPULSE(2)    // coin 2
+	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_N) PORT_NAME("Note")      // note acceptor
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_M) PORT_NAME("Remote")    // remote credits
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_L) PORT_NAME("Coin 3 (tokens)")    // coin 3 (tokens)
 
 	PORT_START("IN4")
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_1_PAD) PORT_NAME("IN4-1")
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_2_PAD) PORT_NAME("IN4-2")
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_2_PAD) PORT_NAME("Operator Bookkeeping")  // operator bookkeeping
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_3_PAD) PORT_NAME("IN4-3")
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_4_PAD) PORT_NAME("IN4-4")
-	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_5_PAD) PORT_NAME("IN4-5")
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_5_PAD) PORT_NAME("Payout")  // payout?
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_6_PAD) PORT_NAME("IN4-6")
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_7_PAD) PORT_NAME("IN4-7")
-	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_OTHER ) PORT_CODE(KEYCODE_8_PAD) PORT_NAME("IN4-8")
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_SERVICE ) PORT_CODE(KEYCODE_8_PAD) PORT_NAME("Supervisor Bookkeeping")  // supervisor bookkeeping
 
 	PORT_START("DSW1")
 	PORT_DIPNAME( 0x01, 0x01, "DSW1")
@@ -11543,7 +11543,58 @@ ROM_END
   C: DM74LS374N
   D: DS1232
 
+  Unknown Zilog 40pin IC (scratched):
+  (could be either a Z86C15 or Z86C91 MCU)
+
+                    +-----V-----+
+               VCC -|01       40|- 74LS08N (Pin 01)
+        XTAL 8MHz <-|02       39|- GAL16V8 (Pin 17)
+        XTAL 8MHz >-|03   Z   38|- 74LS374 (Pin 03)
+               N/C -|04   I   37|- 74LS374 (Pin 04)
+               N/C -|05   L   36|- 74LS374 (Pin 07)
+  74LS08N (Pin 10) -|06   O   35|- 74LS374 (Pin 08)
+  GAL16V8 (Pin 07) -|07   G   34|- 74LS374 (Pin 13)
+  GAL16V8 (Pin 08) -|08       33|- 74LS374 (Pin 14)
+  74LS374 (Pin 11) -|09       32|- 74LS374 (Pin 17)
+               N/C -|10       31|- 74LS374 (Pin 18)
+               GND -|11       30|- 74LS374 (Pin 01)
+               N/C -|12       29|- 74LS08N (Pin 02)
+      27C512 (A08) -|13       28|- 27C512 (Q7)
+      27C512 (A09) -|14       27|- 27C512 (Q6)
+      27C512 (A10) -|15       26|- 27C512 (Q5)
+      27C512 (A11) -|16       25|- 27C512 (Q4)
+      27C512 (A12) -|17       24|- 27C512 (Q3)
+      27C512 (A13) -|18       23|- 27C512 (Q2)
+      27C512 (A14) -|19       22|- 27C512 (Q1)
+      27C512 (A15) -|20       21|- 27C512 (Q0)
+                    +-----------+
+
+  40-Pin DIP Pin Identification for Z86C15 MCU (for reference):
   
+  ---------------------------------------------------------
+  Pin    Symbol    Function                       Direction
+  ---------------------------------------------------------
+  01     VCC       Power Supply                   Input
+  02     CLKOUT    Z8 System Clock                Output
+  03     RCIN      RC Oscillator Clock            Input
+  04     P37       Port 3, Pin 7                  Output
+  05     P30       Port 3, Pin 0                  Input
+  06     /RESET    Reset                          Input
+  07     AGND      Analog Ground
+  08     NC        Not Connected
+  09     /WDTOUT   Watch-Dog Timer                Output
+  10     P35       Port 3, Pin 5                  Output
+  11     GND       Ground
+  12     P32       Port 3, Pin 2                  Input
+  13-20  P00-P07   Port 0, Pins 0,1,2,3,4,5,6,7   In/Output
+  21-28  P10-P17   Port 1, Pins 0,1,2,3,4,5,6,7   In/Output
+  29     P34       Port 3, Pin 4                  Output
+  30     P33       Port 3, Pin 3                  Input
+  31-38  P20-P27   Port 2, Pins 0,1,2,3,4,5,6,7   In/Output
+  39     P31       Port 3, Pin 1                  Input
+  40     P36       Port 3, Pin 6                  Output
+  ---------------------------------------------------------
+
   BASE Board (based on WING W4):
 
   XTAL: 11.98135MHZ
