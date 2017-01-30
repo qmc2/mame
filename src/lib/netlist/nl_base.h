@@ -9,20 +9,20 @@
 #ifndef NLBASE_H_
 #define NLBASE_H_
 
-#include <vector>
-#include <unordered_map>
-#include <memory>
-//#include <cmath>
-#include <cstdint>
-
 #include "nl_lists.h"
 #include "nl_time.h"
-#include "plib/palloc.h"
+#include "plib/palloc.h" // owned_ptr
 #include "plib/pdynlib.h"
 #include "plib/pstate.h"
 #include "plib/pfmtlog.h"
 #include "plib/pstream.h"
-#include "plib/pexception.h"
+#include "plib/ppmf.h"
+
+#include <unordered_map>
+
+#ifdef NL_PROHIBIT_BASEH_INCLUDE
+#error "nl_base.h included. Please correct."
+#endif
 
 // ----------------------------------------------------------------------------------------
 // Type definitions
@@ -228,11 +228,6 @@ namespace netlist
 	class core_device_t;
 	class device_t;
 
-	/*! Type of the model map used.
-	 *  This is used to hold all #Models in an unordered map
-	 */
-	using model_map_t = std::unordered_map<pstring, pstring>;
-
 	/*! Logic families descriptors are used to create proxy devices.
 	 *  The logic family describes the analog capabilities of logic devices,
 	 *  inputs and outputs.
@@ -387,7 +382,6 @@ namespace netlist
 	 */
 	class detail::object_t
 	{
-		P_PREVENT_COPYING(object_t)
 	public:
 
 		/*! Constructor.
@@ -439,7 +433,6 @@ namespace netlist
 	 */
 	class detail::device_object_t : public detail::object_t
 	{
-		P_PREVENT_COPYING(device_object_t)
 	public:
 		/*! Constructor.
 		 *
@@ -474,7 +467,6 @@ namespace netlist
 	 */
 	class detail::core_terminal_t : public device_object_t, public plib::linkedlist_t<core_terminal_t>::element_t
 	{
-		P_PREVENT_COPYING(core_terminal_t)
 	public:
 
 		using list_t = std::vector<core_terminal_t *>;
@@ -488,25 +480,18 @@ namespace netlist
 			STATE_BIDIR = 256
 		};
 
-		/*! Enum specifying the type of object */
-		enum type_t {
-			TERMINAL = 0, /*!< object is an analog terminal */
-			INPUT    = 1, /*!< object is an input */
-			OUTPUT   = 2, /*!< object is an output */
-		};
-
 		core_terminal_t(core_device_t &dev, const pstring &aname, const state_e state);
 		virtual ~core_terminal_t();
 
 		/*! The object type.
 		 * \returns type of the object
 		 */
-		type_t type() const;
+		terminal_type type() const;
 		/*! Checks if object is of specified type.
 		 * \param atype type to check object against.
 		 * \returns true if object is of specified type else false.
 		 */
-		bool is_type(const type_t atype) const { return (type() == atype); }
+		bool is_type(const terminal_type atype) const { return (type() == atype); }
 
 		void set_net(net_t *anet);
 		void clear_net();
@@ -553,7 +538,6 @@ namespace netlist
 
 	class terminal_t : public analog_t
 	{
-		P_PREVENT_COPYING(terminal_t)
 	public:
 
 		terminal_t(core_device_t &dev, const pstring &aname);
@@ -703,7 +687,6 @@ namespace netlist
 			public detail::object_t,
 			public detail::netlist_ref
 	{
-		P_PREVENT_COPYING(net_t)
 	public:
 
 		net_t(netlist_t &nl, const pstring &aname, core_terminal_t *mr = nullptr);
@@ -764,7 +747,6 @@ namespace netlist
 
 	class logic_net_t : public detail::net_t
 	{
-		P_PREVENT_COPYING(logic_net_t)
 	public:
 
 		logic_net_t(netlist_t &nl, const pstring &aname, detail::core_terminal_t *mr = nullptr);
@@ -805,7 +787,6 @@ namespace netlist
 
 	class analog_net_t : public detail::net_t
 	{
-		P_PREVENT_COPYING(analog_net_t)
 	public:
 
 		using list_t =  std::vector<analog_net_t *>;
@@ -831,7 +812,6 @@ namespace netlist
 
 	class logic_output_t : public logic_t
 	{
-		P_PREVENT_COPYING(logic_output_t)
 	public:
 
 		logic_output_t(core_device_t &dev, const pstring &aname);
@@ -850,7 +830,6 @@ namespace netlist
 
 	class analog_output_t : public analog_t
 	{
-		P_PREVENT_COPYING(analog_output_t)
 	public:
 		analog_output_t(core_device_t &dev, const pstring &aname);
 		virtual ~analog_output_t();
@@ -869,7 +848,6 @@ namespace netlist
 
 	class param_t : public detail::device_object_t
 	{
-		P_PREVENT_COPYING(param_t)
 	public:
 
 		enum param_type_t {
@@ -994,7 +972,7 @@ namespace netlist
 	private:
 		/* hide this */
 		void setTo(const pstring &param) = delete;
-		model_map_t m_map;
+		detail::model_map_t m_map;
 };
 
 
@@ -1039,7 +1017,6 @@ namespace netlist
 			public logic_family_t,
 			public detail::netlist_ref
 	{
-		P_PREVENT_COPYING(core_device_t)
 	public:
 		core_device_t(netlist_t &owner, const pstring &name);
 		core_device_t(core_device_t &owner, const pstring &name);
@@ -1119,7 +1096,6 @@ namespace netlist
 
 	class device_t : public core_device_t
 	{
-		P_PREVENT_COPYING(device_t)
 	public:
 
 		template <class C>
@@ -1201,9 +1177,8 @@ namespace netlist
 	// -----------------------------------------------------------------------------
 
 
-	class netlist_t : public plib::plog_dispatch_intf
+	class netlist_t : public plib::plog_dispatch_intf, private plib::nocopyassignmove
 	{
-		P_PREVENT_COPYING(netlist_t)
 	public:
 
 		explicit netlist_t(const pstring &aname);
@@ -1323,8 +1298,6 @@ namespace netlist
 		// performance
 		nperftime_t     m_stat_mainloop;
 		nperfcount_t    m_perf_out_processed;
-		nperfcount_t    m_perf_inp_processed;
-		nperfcount_t    m_perf_inp_active;
 
 		std::vector<plib::owned_ptr<core_device_t>> m_devices;
 };

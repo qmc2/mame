@@ -216,22 +216,22 @@ detail::device_object_t::device_object_t(core_device_t &dev, const pstring &anam
 {
 }
 
-detail::core_terminal_t::type_t detail::core_terminal_t::type() const
+detail::terminal_type detail::core_terminal_t::type() const
 {
 	if (dynamic_cast<const terminal_t *>(this) != nullptr)
-		return type_t::TERMINAL;
+		return terminal_type::TERMINAL;
 	else if (dynamic_cast<const logic_input_t *>(this) != nullptr)
-		return type_t::INPUT;
+		return terminal_type::INPUT;
 	else if (dynamic_cast<const logic_output_t *>(this) != nullptr)
-		return type_t::OUTPUT;
+		return terminal_type::OUTPUT;
 	else if (dynamic_cast<const analog_input_t *>(this) != nullptr)
-		return type_t::INPUT;
+		return terminal_type::INPUT;
 	else if (dynamic_cast<const analog_output_t *>(this) != nullptr)
-		return type_t::OUTPUT;
+		return terminal_type::OUTPUT;
 	else
 	{
 		netlist().log().fatal(MF_1_UNKNOWN_TYPE_FOR_OBJECT, name());
-		return type_t::TERMINAL; // please compiler
+		return terminal_type::TERMINAL; // please compiler
 	}
 }
 
@@ -319,6 +319,7 @@ void netlist_t::start()
 
 	/* create devices */
 
+	log().debug("Creating devices ...\n");
 	for (auto & e : setup().m_device_factory)
 	{
 		if ( !setup().factory().is_class<devices::NETLIB_NAME(solver)>(e.second)
@@ -356,6 +357,25 @@ void netlist_t::start()
 	/* resolve inputs */
 	setup().resolve_inputs();
 
+	/* Make sure devices are fully created - now done in register_dev */
+
+	log().debug("Setting delegate pointers ...\n");
+	for (auto &dev : m_devices)
+		dev->set_delegate_pointer();
+
+	log().verbose("looking for two terms connected to rail nets ...");
+	for (auto & t : get_device_list<analog::NETLIB_NAME(twoterm)>())
+	{
+		if (t->m_N.net().isRailNet() && t->m_P.net().isRailNet())
+		{
+			log().warning(MW_3_REMOVE_DEVICE_1_CONNECTED_ONLY_TO_RAILS_2_3,
+				t->name(), t->m_N.net().name(), t->m_P.net().name());
+			t->m_N.net().remove_terminal(t->m_N);
+			t->m_P.net().remove_terminal(t->m_P);
+			remove_dev(t);
+		}
+	}
+
 	log().verbose("initialize solver ...\n");
 
 	if (m_solver == nullptr)
@@ -366,12 +386,6 @@ void netlist_t::start()
 	}
 	else
 		m_solver->post_start();
-
-	/* finally, set the pointers */
-
-	log().debug("Setting delegate pointers ...\n");
-	for (auto &dev : m_devices)
-		dev->set_delegate_pointer();
 
 }
 

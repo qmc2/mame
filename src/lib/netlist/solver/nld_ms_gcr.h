@@ -30,15 +30,16 @@ namespace netlist
 {
 	namespace devices
 	{
-template <unsigned m_N, unsigned storage_N>
+template <std::size_t m_N, std::size_t storage_N>
 class matrix_solver_GCR_t: public matrix_solver_t
 {
 public:
 
 	matrix_solver_GCR_t(netlist_t &anetlist, const pstring &name,
-			const solver_parameters_t *params, const unsigned size)
+			const solver_parameters_t *params, const std::size_t size)
 		: matrix_solver_t(anetlist, name, matrix_solver_t::ASCENDING, params)
 		, m_dim(size)
+		, mat(size)
 		, m_proc(nullptr)
 		{
 		}
@@ -47,7 +48,7 @@ public:
 	{
 	}
 
-	inline unsigned N() const { if (m_N == 0) return m_dim; else return m_N; }
+	constexpr std::size_t N() const { return (m_N == 0) ? m_dim : m_N; }
 
 	virtual void vsetup(analog_net_t::list_t &nets) override;
 	virtual unsigned vsolve_non_dynamic(const bool newton_raphson) override;
@@ -56,16 +57,18 @@ public:
 
 private:
 
+	//typedef typename mat_cr_t<storage_N>::type mattype;
+	typedef typename mat_cr_t<storage_N>::index_type mattype;
+
 	void csc_private(plib::putf8_fmt_writer &strm);
 
 	using extsolver = void (*)(double * RESTRICT m_A, double * RESTRICT RHS);
 
 	pstring static_compile_name();
 
-	unsigned m_dim;
+	const std::size_t m_dim;
 	std::vector<unsigned> m_term_cr[storage_N];
 	mat_cr_t<storage_N> mat;
-	nl_double m_A[storage_N * storage_N];
 
 	extsolver m_proc;
 
@@ -75,18 +78,18 @@ private:
 // matrix_solver - GMRES
 // ----------------------------------------------------------------------------------------
 
-template <unsigned m_N, unsigned storage_N>
+template <std::size_t m_N, std::size_t storage_N>
 void matrix_solver_GCR_t<m_N, storage_N>::vsetup(analog_net_t::list_t &nets)
 {
 	setup_base(nets);
 
-	unsigned nz = 0;
-	const unsigned iN = this->N();
+	mattype nz = 0;
+	const std::size_t iN = this->N();
 
 	/* build the final matrix */
 
 	bool touched[storage_N][storage_N] = { { false } };
-	for (unsigned k = 0; k < iN; k++)
+	for (std::size_t k = 0; k < iN; k++)
 	{
 		for (auto &j : this->m_terms[k]->m_nz)
 			touched[k][j] = true;
@@ -96,16 +99,16 @@ void matrix_solver_GCR_t<m_N, storage_N>::vsetup(analog_net_t::list_t &nets)
 
 	unsigned ops = 0;
 
-	for (unsigned k = 0; k < iN; k++)
+	for (std::size_t k = 0; k < iN; k++)
 	{
 		ops++; // 1/A(k,k)
-		for (unsigned row = k + 1; row < iN; row++)
+		for (std::size_t row = k + 1; row < iN; row++)
 		{
 			if (touched[row][k])
 			{
 				ops++;
 				fc++;
-				for (unsigned col = k + 1; col < iN; col++)
+				for (std::size_t col = k + 1; col < iN; col++)
 					if (touched[k][col])
 					{
 						touched[row][col] = true;
@@ -116,11 +119,11 @@ void matrix_solver_GCR_t<m_N, storage_N>::vsetup(analog_net_t::list_t &nets)
 	}
 
 
-	for (unsigned k=0; k<iN; k++)
+	for (mattype k=0; k<iN; k++)
 	{
 		mat.ia[k] = nz;
 
-		for (unsigned j=0; j<iN; j++)
+		for (mattype j=0; j<iN; j++)
 		{
 			if (touched[k][j])
 			{
@@ -133,10 +136,10 @@ void matrix_solver_GCR_t<m_N, storage_N>::vsetup(analog_net_t::list_t &nets)
 
 		m_term_cr[k].clear();
 		/* build pointers into the compressed row format matrix for each terminal */
-		for (unsigned j=0; j< this->m_terms[k]->m_railstart;j++)
+		for (std::size_t j=0; j< this->m_terms[k]->m_railstart;j++)
 		{
 			int other = this->m_terms[k]->connected_net_idx()[j];
-			for (unsigned i = mat.ia[k]; i < nz; i++)
+			for (auto i = mat.ia[k]; i < nz; i++)
 				if (other == static_cast<int>(mat.ja[i]))
 				{
 					m_term_cr[k].push_back(i);
@@ -166,27 +169,28 @@ void matrix_solver_GCR_t<m_N, storage_N>::vsetup(analog_net_t::list_t &nets)
 
 }
 
-template <unsigned m_N, unsigned storage_N>
+template <std::size_t m_N, std::size_t storage_N>
 void matrix_solver_GCR_t<m_N, storage_N>::csc_private(plib::putf8_fmt_writer &strm)
 {
-	const unsigned iN = N();
-	for (unsigned i = 0; i < iN - 1; i++)
+	const std::size_t iN = N();
+	for (std::size_t i = 0; i < iN - 1; i++)
 	{
 		const auto &nzbd = this->m_terms[i]->m_nzbd;
 
 		if (nzbd.size() > 0)
 		{
-			unsigned pi = mat.diag[i];
+			std::size_t pi = mat.diag[i];
 
 			//const nl_double f = 1.0 / m_A[pi++];
 			strm("const double f{1} = 1.0 / m_A[{2}];\n", i, pi);
 			pi++;
-			const unsigned piie = mat.ia[i+1];
+			const std::size_t piie = mat.ia[i+1];
 
-			for (auto & j : nzbd)
+			//for (auto & j : nzbd)
+			for (std::size_t j : nzbd)
 			{
 				// proceed to column i
-				unsigned pj = mat.ia[j];
+				std::size_t pj = mat.ia[j];
 
 				while (mat.ja[pj] < i)
 					pj++;
@@ -196,7 +200,7 @@ void matrix_solver_GCR_t<m_N, storage_N>::csc_private(plib::putf8_fmt_writer &st
 				pj++;
 
 				// subtract row i from j */
-				for (unsigned pii = pi; pii<piie; )
+				for (std::size_t pii = pi; pii<piie; )
 				{
 					while (mat.ja[pj] < mat.ja[pii])
 						pj++;
@@ -212,7 +216,7 @@ void matrix_solver_GCR_t<m_N, storage_N>::csc_private(plib::putf8_fmt_writer &st
 }
 
 
-template <unsigned m_N, unsigned storage_N>
+template <std::size_t m_N, std::size_t storage_N>
 pstring matrix_solver_GCR_t<m_N, storage_N>::static_compile_name()
 {
 	plib::postringstream t;
@@ -223,7 +227,7 @@ pstring matrix_solver_GCR_t<m_N, storage_N>::static_compile_name()
 	return plib::pfmt("nl_gcr_{1:x}_{2}")(h( t.str() ))(mat.nz_num);
 }
 
-template <unsigned m_N, unsigned storage_N>
+template <std::size_t m_N, std::size_t storage_N>
 std::pair<pstring, pstring> matrix_solver_GCR_t<m_N, storage_N>::create_solver_code()
 {
 	plib::postringstream t;
@@ -238,18 +242,17 @@ std::pair<pstring, pstring> matrix_solver_GCR_t<m_N, storage_N>::create_solver_c
 }
 
 
-template <unsigned m_N, unsigned storage_N>
+template <std::size_t m_N, std::size_t storage_N>
 unsigned matrix_solver_GCR_t<m_N, storage_N>::vsolve_non_dynamic(const bool newton_raphson)
 {
-	const unsigned iN = this->N();
+	const std::size_t iN = this->N();
 
 	nl_double RHS[storage_N];
 	nl_double new_V[storage_N];
 
-	for (unsigned i=0, e=mat.nz_num; i<e; i++)
-		m_A[i] = 0.0;
+	mat.set_scalar(0.0);
 
-	for (unsigned k = 0; k < iN; k++)
+	for (std::size_t k = 0; k < iN; k++)
 	{
 		terms_for_net_t *t = this->m_terms[k].get();
 		nl_double gtot_t = 0.0;
@@ -281,7 +284,7 @@ unsigned matrix_solver_GCR_t<m_N, storage_N>::vsolve_non_dynamic(const bool newt
 			RHS_t += Idr[i];
 		}
 #else
-		for (unsigned i = 0; i < term_count; i++)
+		for (std::size_t i = 0; i < term_count; i++)
 		{
 			gtot_t += gt[i];
 			RHS_t += Idr[i];
@@ -293,10 +296,10 @@ unsigned matrix_solver_GCR_t<m_N, storage_N>::vsolve_non_dynamic(const bool newt
 		RHS[k] = RHS_t;
 
 		// add diagonal element
-		m_A[mat.diag[k]] = gtot_t;
+		mat.A[mat.diag[k]] = gtot_t;
 
-		for (unsigned i = 0; i < railstart; i++)
-			m_A[tcr[i]] -= go[i];
+		for (std::size_t i = 0; i < railstart; i++)
+			mat.A[tcr[i]] -= go[i];
 	}
 #else
 		for (std::size_t i = 0; i < railstart; i++)
@@ -316,44 +319,44 @@ unsigned matrix_solver_GCR_t<m_N, storage_N>::vsolve_non_dynamic(const bool newt
 		m_A[mat.diag[k]] += gtot_t;
 	}
 #endif
-	mat.ia[iN] = mat.nz_num;
+	mat.ia[iN] = static_cast<mattype>(mat.nz_num);
 
 	/* now solve it */
 
 	if (m_proc != nullptr)
 	{
 		//static_solver(m_A, RHS);
-		m_proc(m_A, RHS);
+		m_proc(mat.A, RHS);
 	}
 	else
 	{
-		for (unsigned i = 0; i < iN - 1; i++)
+		for (std::size_t i = 0; i < iN - 1; i++)
 		{
 			const auto &nzbd = this->m_terms[i]->m_nzbd;
 
 			if (nzbd.size() > 0)
 			{
-				unsigned pi = mat.diag[i];
-				const nl_double f = 1.0 / m_A[pi++];
-				const unsigned piie = mat.ia[i+1];
+				std::size_t pi = mat.diag[i];
+				const nl_double f = 1.0 / mat.A[pi++];
+				const std::size_t piie = mat.ia[i+1];
 
-				for (auto & j : nzbd)
+				for (std::size_t j : nzbd) // for (std::size_t j = i + 1; j < iN; j++)
 				{
 					// proceed to column i
 					//__builtin_prefetch(&m_A[mat.diag[j+1]], 1);
-					unsigned pj = mat.ia[j];
+					std::size_t pj = mat.ia[j];
 
 					while (mat.ja[pj] < i)
 						pj++;
 
-					const nl_double f1 = - m_A[pj++] * f;
+					const nl_double f1 = - mat.A[pj++] * f;
 
 					// subtract row i from j */
-					for (unsigned pii = pi; pii<piie; )
+					for (std::size_t pii = pi; pii<piie; )
 					{
 						while (mat.ja[pj] < mat.ja[pii])
 							pj++;
-						m_A[pj++] += m_A[pii++] * f1;
+						mat.A[pj++] += mat.A[pii++] * f1;
 					}
 					RHS[j] += f1 * RHS[i];
 				}
@@ -366,9 +369,9 @@ unsigned matrix_solver_GCR_t<m_N, storage_N>::vsolve_non_dynamic(const bool newt
 	 */
 
 	/* row n-1 */
-	new_V[iN - 1] = RHS[iN - 1] / m_A[mat.diag[iN - 1]];
+	new_V[iN - 1] = RHS[iN - 1] / mat.A[mat.diag[iN - 1]];
 
-	for (unsigned j = iN - 1; j-- > 0;)
+	for (std::size_t j = iN - 1; j-- > 0;)
 	{
 		//__builtin_prefetch(&new_V[j-1], 1);
 		//if (j>0)__builtin_prefetch(&m_A[mat.diag[j-1]], 0);
@@ -379,23 +382,23 @@ unsigned matrix_solver_GCR_t<m_N, storage_N>::vsolve_non_dynamic(const bool newt
 		for (; pk < e - 1; pk+=2)
 		{
 			//tmp += m_A[pk] * new_V[mat.ja[pk]];
-			tmp = _mm_add_pd(tmp, _mm_mul_pd(_mm_set_pd(m_A[pk], m_A[pk+1]),
+			tmp = _mm_add_pd(tmp, _mm_mul_pd(_mm_set_pd(mat.A[pk], mat.A[pk+1]),
 					_mm_set_pd(new_V[mat.ja[pk]], new_V[mat.ja[pk+1]])));
 		}
 		double tmpx = _mm_cvtsd_f64(tmp) + _mm_cvtsd_f64(_mm_unpackhi_pd(tmp,tmp));
 		for (; pk < e; pk++)
 		{
-			tmpx += m_A[pk] * new_V[mat.ja[pk]];
+			tmpx += mat.A[pk] * new_V[mat.ja[pk]];
 		}
-		new_V[j] = (RHS[j] - tmpx) / m_A[mat.diag[j]];
+		new_V[j] = (RHS[j] - tmpx) / mat.A[mat.diag[j]];
 #else
 		double tmp = 0;
-		const unsigned e = mat.ia[j+1];
-		for (unsigned pk = mat.diag[j] + 1; pk < e; pk++)
+		const std::size_t e = mat.ia[j+1];
+		for (std::size_t pk = mat.diag[j] + 1; pk < e; pk++)
 		{
-			tmp += m_A[pk] * new_V[mat.ja[pk]];
+			tmp += mat.A[pk] * new_V[mat.ja[pk]];
 		}
-		new_V[j] = (RHS[j] - tmp) / m_A[mat.diag[j]];
+		new_V[j] = (RHS[j] - tmp) / mat.A[mat.diag[j]];
 #endif
 	}
 	this->m_stat_calculations++;

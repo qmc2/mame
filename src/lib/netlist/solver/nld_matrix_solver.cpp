@@ -8,6 +8,8 @@
 #include "nld_matrix_solver.h"
 #include "plib/putil.h"
 
+#include <cmath>  // <<= needed by windows build
+
 namespace netlist
 {
 	namespace devices
@@ -121,7 +123,7 @@ void matrix_solver_t::setup_base(analog_net_t::list_t &nets)
 			log().debug("{1} {2} {3}\n", p->name(), net->name(), net->isRailNet());
 			switch (p->type())
 			{
-				case terminal_t::TERMINAL:
+				case detail::terminal_type::TERMINAL:
 					if (p->device().is_timestep())
 						if (!plib::container::contains(m_step_devices, &p->device()))
 							m_step_devices.push_back(&p->device());
@@ -134,7 +136,7 @@ void matrix_solver_t::setup_base(analog_net_t::list_t &nets)
 					}
 					log().debug("Added terminal {1}\n", p->name());
 					break;
-				case terminal_t::INPUT:
+				case detail::terminal_type::INPUT:
 					{
 						proxied_analog_output_t *net_proxy_output = nullptr;
 						for (auto & input : m_inps)
@@ -158,7 +160,7 @@ void matrix_solver_t::setup_base(analog_net_t::list_t &nets)
 						log().debug("Added input\n");
 					}
 					break;
-				case terminal_t::OUTPUT:
+				case detail::terminal_type::OUTPUT:
 					log().fatal(MF_1_UNHANDLED_ELEMENT_1_FOUND,
 							p->name());
 					break;
@@ -374,6 +376,7 @@ void matrix_solver_t::reset()
 void matrix_solver_t::update() NL_NOEXCEPT
 {
 	const netlist_time new_timestep = solve();
+	update_inputs();
 
 	if (m_params.m_dynamic_ts && has_timestep_devices() && new_timestep > netlist_time::zero())
 	{
@@ -385,6 +388,7 @@ void matrix_solver_t::update() NL_NOEXCEPT
 void matrix_solver_t::update_forced()
 {
 	ATTR_UNUSED const netlist_time new_timestep = solve();
+	update_inputs();
 
 	if (m_params.m_dynamic_ts && has_timestep_devices())
 	{
@@ -445,7 +449,6 @@ const netlist_time matrix_solver_t::solve()
 	step(delta);
 	solve_base();
 	const netlist_time next_time_step = compute_next_timestep(delta.as_double());
-	update_inputs();
 
 	return next_time_step;
 }

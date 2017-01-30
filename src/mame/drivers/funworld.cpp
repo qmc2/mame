@@ -5386,6 +5386,144 @@ ROM_START( powercrd )
 ROM_END
 
 
+/*
+
+  Mega Card (MC3).
+  Ver. 0210.
+  Fun World, 1993.
+
+  Encrypted poker game.
+
+  1x custom encrypted Fun World CPU based on 65SC02.
+  1x GM68B45S CRTC.
+  2x EF6821P PIAs.
+  1x AY38910A.
+  2x ULN2003AN (out).
+  1x PAL16L8ACN (PLD).
+  1x Maxim MAX690CPA (Microprocessor Supervisory Circuits).
+
+  RAM:
+  1x GoldStar GM76C28-10.
+  1x KM6264BL-10.
+
+  ROM:
+  4x 27C256 (two for program, two for GFX).
+  1x N82S147AN bipolar PROM.
+
+  Other:
+
+  1x 16MHz Xtal.
+  1x 8 DIP switches bank.
+  1x 3V. CR2025 lithium battery.
+
+  1X 17x2 Pin male connector.
+  1X 22x2 Pin edge connector.
+  1X 8x2 Pin edge connector.
+
+
+
+  PCB layout:
+
+  .----------------------------------------------------------------------------------------------------------------------.
+  |                                                                                                                      |
+  |   .--------.                    .--------.                                                  .-------.                |
+  |   |        |   .------------.   |        |                                                  |       |                |
+  |   |        |   |  GD74LS157 |   |        |                                                  |       |   .---.        '---.
+  |   |        |   '------------'   |Goldstar|                                                  |       |   |   | .---. 8 ---|
+  |   |GOLDSTAR|                    |        |                                                  |       |   |ULN| |   |   ---|
+  |   |        |   .------------.   |GM76C28 |                                                  |       |   |200| |74L| P ---|
+  |   |        |   |  GD74LS157 |   |  -10   |                                                  |       |   |3AN| |S04| I ---|
+  |   |GM68B45S|   '------------'   |        |                                                  |AY38910|   |   | |P  | N ---|
+  |   |        |                    |        |                                                  |A/P    |   |   | |   |   ---|
+  |   |        |   .------------.   |        |         .-------------------------------------.  |       |   '---' |   | C ---|
+  |   |        |   |  GD74LS157 |   |        |         |## ooooooooooooooooooooooooooooooo ##|  |       |         '---' O ---|
+  |   |        |   '------------'   |        |         |## ooooooooooooooooooooooooooooooo ##|  |       |               N ---|
+  |   |        |                    '--------'         '-------------------------------------'  |       |    .---.      N ---|
+  |   |        |   .------------.                                                               |       |    |   |        ---|
+  |   |        |   |  GD74LS157 |                           .--------------.  .--------------.  |       |    |ULN|       .---'
+  |   |        |   '------------'                           |  PAL16L8ACN  |  | EMPTY SOCKET |  |       |    |200|       |
+  |   |        |                                            '--------------'  '--------------'  |       |    |3AN|       |
+  |   |        |     .------------------.   .-----.         .--------------------------------.  |       |    |   |       |
+  |   '--------'     |                  |   |XTAL |         |Lfnd. Nr: 0057                  |  '-------'    '---'       |
+  |                  |    KM6264BL-10   |   |16.00|         |Type: 'F'                       |  .-------.                |
+  | .-------------.  |                  |   |0MHz |         |Datum: 17.3.93                  |  |       |                |
+  | |  GD74LS245  |  |                  |   |     |         |                                |  |       |                |
+  | '-------------'  '------------------'   '-----'         |                     FUN WORLD  |  |       |                '---.
+  |                                                         |                                |  |       |                 ---|
+  | .-------------.        .------------.                   '--------------------------------'  |       |                 ---|
+  | | HD74LS374P  |        | HD74LS374P |                                                       |EF6821P|                 ---|
+  | '-------------'        '------------'   .---.        .---.          .--------------------.  |       |                 ---|
+  |                                         |GD7|        |GD7|          |                    |  |       |                 ---|
+  |.--------------------.    .----------.   |4LS|        |4LS|          |    EMPTY SOCKET    |  |       |    .---.        ---|
+  ||MEGA                |    |74LS194AN |   |368|        |245|          |                    |  |       |    |  8|        ---|
+  ||ZG 1                |    '----------'   |A  |        |   |          |                    |  |       |    |   |        ---|
+  ||              27C256|                   |   |        |   |          '--------------------'  |       |    |   |     22 ---|
+  ||                IC10|    .----------.   '---'        |   |                                  |       |    |DIP|        ---|
+  |'--------------------'    |74LS194AN |                |   |          .--------------------.  |       |    |   |      P ---|
+  |                          '----------'                |   |          |MEGA MC 3           |  |       |    |   |      I ---|
+  |                                                      '---'          | 210/F/1            |  |       |    |   |      N ---|
+  |.--------------------.    .----------.                               |              27C256|  |       |    |  1|        ---|
+  ||MEGA                |    |74LS194AN |   .---.   .---.   .---.       |                IC37|  |       |    '---'      C ---|
+  ||ZG 2                |    '----------'   |GD7|   |MN7|   |GD7|       '--------------------'  '-------'               O ---|
+  ||              27C256|                   |4LS|   |4HC|   |4LS|                               .-------.               N ---|
+  ||                IC11|    .----------.   |393|   |241|   |139|       .--------------------.  |       |               N ---|
+  |'--------------------'    |74LS194AN |   |   |   |   |   |   |       |MEGA MC 3           |  |       |               E ---|
+  |                          '----------'   |   |   |   |   |   |       | 210/F/2            |  |       |               C ---|
+  |                                         '---'   |   |   '---'       |              27C256|  |       |               T ---|
+  |.----------.  .----------.                       |   |               |                IC41|  |       |               O ---|
+  ||GD74LS174 |  |HD74LS02P |                       |   |               '--------------------'  |EF6821P|               R ---|
+  |'----------'  '----------'                       '---'                                       |       |                 ---|
+  |                                           -------                                    .---.  |       |                 ---|
+  |.---.  .---.  .---.              .---.   / CR-2025 \                                  |HD7|  |       |                 ---|
+  ||GD7|  |   |  |HD7|              |MAX|  |  LITHIUM  |                                 |4LS|  |       |                 ---|
+  ||4LS|  |N82|  |4LS|              |690|  |  BATTERY  |                                 |02P|  |       |                 ---|
+  ||174|  |S14|  |374|              '---'   \  +3V.   /                                  |   |  |       |                 ---|
+  ||   |  |7AN|  |P  |              Maxim     -------                                    |   |  |       |                 ---|
+  ||   |  |   |  |   |            MAX690CPA                                              '---'  |       |                 ---|
+  |'---'  |   |  |   |                                                                          |       |                .---'
+  |       |   |  |   |                                                                          |       |                |
+  |       '---'  '---'                                                                          '-------'                |
+  |                                                                                                                      |
+  '----------------------------------------------------------------------------------------------------------------------'
+
+
+  The encrypted CPU:
+  
+  It's a DIP40 custom IC. It has inside a PLCC28 IC and 3 dies:
+
+  The PLCC28 chip is a CY7C291A (prom replacement)
+  DIE#1 is a TI74F245A, a 3-state octal latch from Texas Instruments.
+  DIE#2 is the CPU, a 65SC02.
+  DIE#3 is a 7400, a quad 2-input NAND gate.
+
+  Is unknown how they are connected.
+
+*/
+
+ROM_START( megamc3 )
+	ROM_REGION( 0x10000, "maincpu", 0 )  /* need proper decryption */
+	ROM_LOAD( "mega_mc3_210-f-1.ic37",  0x8000, 0x8000, CRC(747f5ed1) SHA1(06757bb6a792dca93978b17b54c28e413e3720b1) )  /* just the 2nd half */
+	ROM_LOAD( "mega_mc3_210-f-2.ic41",  0x4000, 0x8000, CRC(373094d2) SHA1(8aed2502e89b0e7522e88f351ac256f1afad7ee8) )  /* just the 2nd half */
+
+	ROM_REGION( 0x0300, "decode", 0 )  /* from the 65SC02 die inside of the custom CPU */
+	ROM_LOAD( "gteu65decoderom.bin",   0x0000, 0x02f1, CRC(089af0c6) SHA1(0f46a73a7859a694a07ebe74d476fae80e57e329) )
+
+	ROM_REGION( 0x1000, "decode2", 0 )  /* from the CY7C291A inside of the custom CPU */
+	ROM_LOAD( "cy7291a.bin",    0x0000, 0x0800, CRC(34d256b3) SHA1(4f1da3d445dcb349def999720d05258f1d1a1ec3) )  /* dumped with programmer #1 */
+	ROM_LOAD( "cy7291a_.bin",   0x0800, 0x0800, CRC(d79a7842) SHA1(6fb17db38113a28750f6af7bf1cb9fdd46fa6dec) )  /* dumped with programmer #2. three bytes different */
+
+	ROM_REGION( 0x10000, "gfx1", 0 )
+	ROM_LOAD( "mega_zg2.ic11",   0x0000, 0x8000, CRC(0993d380) SHA1(e5e2386948fba2fb6b79339af27bd1d0f1e198ca) )
+	ROM_LOAD( "mega_zg1.ic10",   0x8000, 0x8000, CRC(de2e2dd0) SHA1(17962d84838f39de41bc7a41d399fd18cd0bd5b7) )
+
+	ROM_REGION( 0x0200, "proms", 0 )
+	ROM_LOAD( "n82s147an.bin",  0x0000, 0x0200, CRC(136245f3) SHA1(715309982fcafbce88b08237ca46acec31273938) )
+
+	ROM_REGION( 0x0200, "plds", 0 )
+	ROM_LOAD( "megacard_pal16l8.bin",  0x0000, 0x0117, CRC(3159a548) SHA1(ad904fa35b78570e44323469967803e34ef4bc0c) )
+ROM_END
+
+
 /*  (Multi) Joker Card from Vesely Svet (Sprightly World). Czech poker game.
     Program roms seems encrypted. Seems to be a Big Deal clone, running in
     Fun World Multi Win hardware.
@@ -6764,7 +6902,6 @@ GAMEL( 1986, bonuscrd,  0,        fw2ndpal, bonuscrd,  driver_device,  0,       
 GAMEL( 1986, bonuscrda, bonuscrd, fw2ndpal, bonuscrd,  driver_device,  0,        ROT0, "Fun World",       "Bonus Card (Austrian, ATG Electronic hack)",      MACHINE_IMPERFECT_COLORS,   layout_bonuscrd ) // use fw1stpal machine for green background
 GAMEL( 1986, bigdeal,   bonuscrd, fw2ndpal, bigdeal,   driver_device,  0,        ROT0, "Fun World",       "Big Deal (Hungarian, set 1)",                     MACHINE_IMPERFECT_COLORS,   layout_bonuscrd )
 GAMEL( 1986, bigdealb,  bonuscrd, fw2ndpal, bigdeal,   driver_device,  0,        ROT0, "Fun World",       "Big Deal (Hungarian, set 2)",                     MACHINE_IMPERFECT_COLORS,   layout_bonuscrd )
-GAME(  1993, powercrd,  0,        fw2ndpal, funworld,  driver_device,  0,        ROT0, "Fun World",       "Power Card (Ver 0263, encrypted)",                MACHINE_NOT_WORKING )                         // clone of Bonus Card.
 
 // CMC Italian jamma PCB's...
 GAMEL( 1996, cuoreuno,  0,        cuoreuno, cuoreuno,  driver_device,  0,        ROT0, "C.M.C.",          "Cuore 1 (Italian)",                               0,                       layout_jollycrd )
@@ -6827,6 +6964,8 @@ GAMEL( 198?, jolyjokrc, jolyjokr, fw1stpal, funworld,  driver_device,  0,       
 
 // Encrypted games...
 GAME(  1992, multiwin,  0,        fw1stpal, funworld,  funworld_state, multiwin, ROT0, "Fun World",       "Multi Win (Ver.0167, encrypted)",                 MACHINE_NOT_WORKING )
+GAME(  1993, powercrd,  0,        fw2ndpal, funworld,  driver_device,  0,        ROT0, "Fun World",       "Power Card (Ver 0263, encrypted)",                MACHINE_NOT_WORKING )                      // clone of Bonus Card.
+GAME(  1993, megamc3,   0,        fw2ndpal, funworld,  driver_device,  0,        ROT0, "Fun World",       "Mega Card (Ver.0210, encrypted)",                 MACHINE_NOT_WORKING )
 GAME(  1993, jokercrd,  0,        fw2ndpal, funworld,  driver_device,  0,        ROT0, "Vesely Svet",     "Joker Card (Ver.A267BC, encrypted)",              MACHINE_NOT_WORKING )
 GAME(  198?, saloon,    0,        saloon,   saloon,    funworld_state, saloon,   ROT0, "<unknown>",       "Saloon (French, encrypted)",                      MACHINE_NOT_WORKING )
 

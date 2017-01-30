@@ -5,11 +5,12 @@
  *
  */
 
-#include <algorithm>
-
 #include "solver/nld_solver.h"
 
-#include "nld_twoterm.h"
+#include "nlid_twoterm.h"
+#include "nl_factory.h"
+
+#include <cmath>
 
 namespace netlist
 {
