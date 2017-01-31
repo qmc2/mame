@@ -7,7 +7,8 @@
 
   TODO:
   - why does h2hbaskb need a workaround on writing L pins?
-  - plus1 is not playable, problem with sensor?
+  - lchicken high pitch beeping, aliasing in MAME sound core
+  - plus1: which sensor position is which colour?
 
 ***************************************************************************/
 
@@ -24,11 +25,12 @@
 #include "funjacks.lh" // clickable
 #include "funrlgl.lh"
 #include "h2hbaskb.lh"
+//#include "lchicken.lh"
 #include "lightfgt.lh" // clickable
 #include "mdallas.lh"
 #include "qkracer.lh"
 
-//#include "hh_cop400_test.lh" // common test-layout - use external artwork
+#include "hh_cop400_test.lh" // common test-layout - use external artwork
 
 
 class hh_cop400_state : public driver_device
@@ -280,7 +282,7 @@ WRITE8_MEMBER(ctstein_state::write_g)
 
 WRITE8_MEMBER(ctstein_state::write_l)
 {
-	// L0-L3: button lamps (strobed)
+	// L0-L3: button lamps
 	display_matrix(4, 1, data & 0xf, 1);
 }
 
@@ -316,7 +318,7 @@ INPUT_PORTS_END
 static MACHINE_CONFIG_START( ctstein, ctstein_state )
 
 	/* basic machine hardware */
-	MCFG_CPU_ADD("maincpu", COP421, 860000) // approximation - RC osc. R=12K, C=100pF
+	MCFG_CPU_ADD("maincpu", COP421, 850000) // approximation - RC osc. R=12K, C=100pF
 	MCFG_COP400_CONFIG(COP400_CKI_DIVISOR_4, COP400_CKO_OSCILLATOR_OUTPUT, false) // guessed
 	MCFG_COP400_WRITE_G_CB(WRITE8(ctstein_state, write_g))
 	MCFG_COP400_WRITE_L_CB(WRITE8(ctstein_state, write_l))
@@ -572,6 +574,168 @@ static MACHINE_CONFIG_START( einvaderc, einvaderc_state )
 	MCFG_SCREEN_VISIBLE_AREA(0, 913-1, 0, 1080-1)
 	MCFG_TIMER_DRIVER_ADD_PERIODIC("display_decay", hh_cop400_state, display_decay_tick, attotime::from_msec(1))
 	MCFG_DEFAULT_LAYOUT(layout_einvaderc)
+
+	/* sound hardware */
+	MCFG_SPEAKER_STANDARD_MONO("speaker")
+	MCFG_SOUND_ADD("dac", DAC_1BIT, 0) MCFG_SOUND_ROUTE(ALL_OUTPUTS, "speaker", 0.25)
+	MCFG_DEVICE_ADD("vref", VOLTAGE_REGULATOR, 0) MCFG_VOLTAGE_REGULATOR_OUTPUT(5.0)
+	MCFG_SOUND_ROUTE_EX(0, "dac", 1.0, DAC_VREF_POS_INPUT)
+MACHINE_CONFIG_END
+
+
+
+
+
+/***************************************************************************
+
+  LJN I Took a Lickin' From a Chicken
+  * COP421 MCU label ~/005 COP421-NJC/N
+  * 11 leds, 1-bit sound, motor to a rubber chicken with a pulley in the middle
+  
+  This toy includes 4 games: Tic Tac Toe, Chicken Sez, and Total Recall I/II.
+
+  known releases:
+  - USA: I Took a Lickin' From a Chicken (KMart Corporation/LJN?)
+  - Japan: Professor Chicken's Genius Classroom 「にわとり博士の天才教室」,
+    distributed by Bandai
+
+***************************************************************************/
+
+class lchicken_state : public hh_cop400_state
+{
+public:
+	lchicken_state(const machine_config &mconfig, device_type type, const char *tag)
+		: hh_cop400_state(mconfig, type, tag),
+		m_dac(*this, "dac")
+	{ }
+
+	required_device<dac_bit_interface> m_dac;
+
+	u8 m_motor_pos;
+	TIMER_DEVICE_CALLBACK_MEMBER(motor_sim_tick);
+	DECLARE_CUSTOM_INPUT_MEMBER(motor_switch);
+
+	DECLARE_WRITE8_MEMBER(write_l);
+	DECLARE_WRITE8_MEMBER(write_d);
+	DECLARE_WRITE8_MEMBER(write_g);
+	DECLARE_READ8_MEMBER(read_g);
+	DECLARE_WRITE_LINE_MEMBER(write_so);
+	DECLARE_READ_LINE_MEMBER(read_si);
+
+protected:
+	virtual void machine_start() override;
+};
+
+// handlers
+
+TIMER_DEVICE_CALLBACK_MEMBER(lchicken_state::motor_sim_tick)
+{
+	if (~m_inp_mux & 8)
+	{
+		m_motor_pos++;
+		output().set_value("motor_pos", 100 * (m_motor_pos / (float)0x100));
+	}
+}
+
+WRITE8_MEMBER(lchicken_state::write_l)
+{
+	// L0-L3: led data
+	// L4-L6: led select
+	// L7: N/C
+	display_matrix(4, 3, ~data & 0xf, data >> 4 & 7);
+}
+
+WRITE8_MEMBER(lchicken_state::write_d)
+{
+	// D0-D3: input mux
+	// D3: motor on
+	m_inp_mux = data & 0xf;
+	output().set_value("motor_on", ~data >> 3 & 1);
+}
+
+WRITE8_MEMBER(lchicken_state::write_g)
+{
+	m_g = data;
+}
+
+READ8_MEMBER(lchicken_state::read_g)
+{
+	// G0-G3: multiplexed inputs
+	return read_inputs(4) & m_g;
+}
+
+WRITE_LINE_MEMBER(lchicken_state::write_so)
+{
+	// SO: speaker out
+	m_dac->write(state);
+	m_so = state;
+}
+
+READ_LINE_MEMBER(lchicken_state::read_si)
+{
+	// SI: SO
+	return m_so;
+}
+
+
+// config
+
+static INPUT_PORTS_START( lchicken )
+	PORT_START("IN.0") // D0 port G
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_KEYPAD ) PORT_CODE(KEYCODE_3) PORT_CODE(KEYCODE_3_PAD) PORT_NAME("3")
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_KEYPAD ) PORT_CODE(KEYCODE_6) PORT_CODE(KEYCODE_6_PAD) PORT_NAME("6")
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_KEYPAD ) PORT_CODE(KEYCODE_9) PORT_CODE(KEYCODE_9_PAD) PORT_NAME("9")
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNUSED )
+
+	PORT_START("IN.1") // D1 port G
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_KEYPAD ) PORT_CODE(KEYCODE_2) PORT_CODE(KEYCODE_2_PAD) PORT_NAME("2")
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_KEYPAD ) PORT_CODE(KEYCODE_5) PORT_CODE(KEYCODE_5_PAD) PORT_NAME("5")
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_KEYPAD ) PORT_CODE(KEYCODE_8) PORT_CODE(KEYCODE_8_PAD) PORT_NAME("8")
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNUSED )
+
+	PORT_START("IN.2") // D2 port G
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_KEYPAD ) PORT_CODE(KEYCODE_1) PORT_CODE(KEYCODE_1_PAD) PORT_NAME("1")
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_KEYPAD ) PORT_CODE(KEYCODE_4) PORT_CODE(KEYCODE_4_PAD) PORT_NAME("4")
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_KEYPAD ) PORT_CODE(KEYCODE_7) PORT_CODE(KEYCODE_7_PAD) PORT_NAME("7")
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNUSED )
+
+	PORT_START("IN.3") // D3 port G
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_SPECIAL ) PORT_CUSTOM_MEMBER(DEVICE_SELF, lchicken_state, motor_switch, nullptr)
+INPUT_PORTS_END
+
+CUSTOM_INPUT_MEMBER(lchicken_state::motor_switch)
+{
+	return m_motor_pos > 0xeb; // approximation
+}
+
+void lchicken_state::machine_start()
+{
+	hh_cop400_state::machine_start();
+
+	// zerofill, register for savestates
+	m_motor_pos = 0;
+	save_item(NAME(m_motor_pos));
+}
+
+static MACHINE_CONFIG_START( lchicken, lchicken_state )
+
+	/* basic machine hardware */
+	MCFG_CPU_ADD("maincpu", COP421, 850000) // approximation - RC osc. R=12K, C=100pF
+	MCFG_COP400_CONFIG(COP400_CKI_DIVISOR_4, COP400_CKO_OSCILLATOR_OUTPUT, false) // guessed
+	MCFG_COP400_WRITE_L_CB(WRITE8(lchicken_state, write_l))
+	MCFG_COP400_WRITE_D_CB(WRITE8(lchicken_state, write_d))
+	MCFG_COP400_WRITE_G_CB(WRITE8(lchicken_state, write_g))
+	MCFG_COP400_READ_G_CB(READ8(lchicken_state, read_g))
+	MCFG_COP400_WRITE_SO_CB(WRITELINE(lchicken_state, write_so))
+	MCFG_COP400_READ_SI_CB(READLINE(lchicken_state, read_si))
+
+	MCFG_TIMER_DRIVER_ADD_PERIODIC("chicken_motor", lchicken_state, motor_sim_tick, attotime::from_msec(6000/0x100)) // ~6sec for a full rotation
+	MCFG_TIMER_DRIVER_ADD_PERIODIC("display_decay", hh_cop400_state, display_decay_tick, attotime::from_msec(1))
+	//MCFG_DEFAULT_LAYOUT(layout_lchicken)
+	MCFG_DEFAULT_LAYOUT(layout_hh_cop400_test)
 
 	/* sound hardware */
 	MCFG_SPEAKER_STANDARD_MONO("speaker")
@@ -941,6 +1105,9 @@ MACHINE_CONFIG_END
   Milton Bradley Plus One
   * COP410L MCU in 8-pin DIP, label ~/029 MM 57405 (die label COP410L/B NNE)
   * orientation sensor(4 directions), 1-bit sound
+  
+  This is a board game, each player needs to rotate a triangular pyramid
+  shaped piece the same as the previous player, plus 1.
 
 ***************************************************************************/
 
@@ -955,6 +1122,8 @@ public:
 	required_device<dac_bit_interface> m_dac;
 
 	DECLARE_WRITE8_MEMBER(write_d);
+	DECLARE_WRITE8_MEMBER(write_l);
+	DECLARE_READ8_MEMBER(read_l);
 };
 
 // handlers
@@ -965,21 +1134,32 @@ WRITE8_MEMBER(plus1_state::write_d)
 	m_dac->write(BIT(data, 0));
 }
 
+WRITE8_MEMBER(plus1_state::write_l)
+{
+	m_l = data;
+}
+
+READ8_MEMBER(plus1_state::read_l)
+{
+	// L: IN.1, mask with output
+	return m_inp_matrix[1]->read() & m_l;
+}
+
 
 // config
 
 static INPUT_PORTS_START( plus1 )
 	PORT_START("IN.0") // port G
 	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_BUTTON1 )
-	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_BUTTON2 )
+	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_BUTTON3 ) PORT_NAME("Sensor Position 3")
+	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_NAME("Sensor Position 1")
 	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_UNUSED )
 
 	PORT_START("IN.1") // port L
-	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON3 )
+	PORT_BIT( 0x01, IP_ACTIVE_LOW, IPT_BUTTON4 ) PORT_NAME("Sensor Position 4")
 	PORT_BIT( 0x02, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x04, IP_ACTIVE_LOW, IPT_UNUSED )
-	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_BUTTON4 )
+	PORT_BIT( 0x08, IP_ACTIVE_LOW, IPT_BUTTON2 ) PORT_NAME("Sensor Position 2")
 	PORT_BIT( 0xf0, IP_ACTIVE_LOW, IPT_UNUSED )
 INPUT_PORTS_END
 
@@ -990,7 +1170,8 @@ static MACHINE_CONFIG_START( plus1, plus1_state )
 	MCFG_COP400_CONFIG(COP400_CKI_DIVISOR_16, COP400_CKO_OSCILLATOR_OUTPUT, false) // guessed
 	MCFG_COP400_WRITE_D_CB(WRITE8(plus1_state, write_d))
 	MCFG_COP400_READ_G_CB(IOPORT("IN.0"))
-	MCFG_COP400_READ_L_CB(IOPORT("IN.1"))
+	MCFG_COP400_WRITE_L_CB(WRITE8(plus1_state, write_l))
+	MCFG_COP400_READ_L_CB(READ8(plus1_state, read_l))
 
 	/* no visual feedback! */
 
@@ -1446,6 +1627,12 @@ ROM_START( einvaderc )
 ROM_END
 
 
+ROM_START( lchicken )
+	ROM_REGION( 0x0400, "maincpu", 0 )
+	ROM_LOAD( "cop421-njc_n", 0x0000, 0x0400, CRC(319e7985) SHA1(9714327518f65ebefe38ac7911bed2b9b9c77307) )
+ROM_END
+
+
 ROM_START( funjacks )
 	ROM_REGION( 0x0200, "maincpu", 0 )
 	ROM_LOAD( "cop410l_b_ngs", 0x0000, 0x0200, CRC(863368ea) SHA1(f116cc27ae721b3a3e178fa13765808bdc275663) )
@@ -1496,11 +1683,13 @@ CONS( 1980, h2hbaskb,  0,        0, h2hbaskb,  h2hbaskb,  driver_device, 0, "Col
 
 CONS( 1981, einvaderc, einvader, 0, einvaderc, einvaderc, driver_device, 0, "Entex", "Space Invader (Entex, COP444L version)", MACHINE_SUPPORTS_SAVE )
 
+CONS( 1980, lchicken,  0,        0, lchicken,  lchicken,  driver_device, 0, "LJN", "I Took a Lickin' From a Chicken", MACHINE_SUPPORTS_SAVE | MACHINE_MECHANICAL )
+
 CONS( 1979, funjacks,  0,        0, funjacks,  funjacks,  driver_device, 0, "Mattel", "Funtronics Jacks", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
 CONS( 1979, funrlgl,   0,        0, funrlgl,   funrlgl,   driver_device, 0, "Mattel", "Funtronics Red Light Green Light", MACHINE_SUPPORTS_SAVE )
 CONS( 1981, mdallas,   0,        0, mdallas,   mdallas,   driver_device, 0, "Mattel", "Dalla$ (J.R. handheld)", MACHINE_SUPPORTS_SAVE ) // ***
 
-CONS( 1980, plus1,     0,        0, plus1,     plus1,     driver_device, 0, "Milton Bradley", "Plus One", MACHINE_SUPPORTS_SAVE | MACHINE_NOT_WORKING ) // ***
+CONS( 1980, plus1,     0,        0, plus1,     plus1,     driver_device, 0, "Milton Bradley", "Plus One", MACHINE_SUPPORTS_SAVE ) // ***
 CONS( 1981, lightfgt,  0,        0, lightfgt,  lightfgt,  driver_device, 0, "Milton Bradley", "Lightfight", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
 CONS( 1982, bship82,   bship,    0, bship82,   bship82,   driver_device, 0, "Milton Bradley", "Electronic Battleship (1982 version)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK ) // ***
 
