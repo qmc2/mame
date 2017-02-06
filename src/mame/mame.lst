@@ -2581,6 +2581,7 @@ bldwolfj                        // (c) 1988 Data East Corporation (Japan)
 
 @source:battlex.cpp
 battlex                         // (c) 1982 Omori E. Co., Ltd.
+dodgeman						//
 
 @source:battlnts.cpp
 battlnts                        // GX777 (c) 1987
@@ -10027,6 +10028,7 @@ ddsomb                          // 23/02/1996 (c) 1996 (Brazil)
 ddsomh                          // 23/02/1996 (c) 1996 (Hispanic)
 ddsomj                          // 19/06/1996 (c) 1996 (Japan)
 ddsomjr1                        // 06/02/1996 (c) 1996 (Japan)
+ddsomjr2                        // 23/02/1996 (c) 1996 (Japan)
 ddsomr1                         // 23/02/1996 (c) 1996 (Euro)
 ddsomr2                         // 09/02/1996 (c) 1996 (Euro)
 ddsomr3                         // 08/02/1996 (c) 1996 (Euro)
@@ -10958,6 +10960,7 @@ cburnrub2                       // 27
 cdiscon1                        // 19 1982.04 Disco No.1
 cdsteljn                        // 14 1981.06 DS Telejan
 cexplore                        // 18 1982.02 Explorer
+cfboy0a1                        // DT-1[12]0-A-1 1981.08    Flash Boy (Japan) (DECO Cassette MD) (Ver 1) // version verified // vertical scrolling (early version)
 cfghtice                        // 40 1984.04 Fighting Ice Hockey
 cfishing                        // 25 1982.10 Fishing
 cflyball                        // 35 1983.?? Flying Ball/Bampoline
@@ -12971,6 +12974,11 @@ galeb                           //
 
 @source:galgame.cpp
 galgame                         // (c) 1971 Computer Recreations, Inc
+
+//@source:galgames.cpp
+//galgame2                        // (c) 1998 Creative Electronics & Software (CES) / Namco
+//galgame3                        // (c) 1998 Creative Electronics & Software (CES) / Atari
+//galgbios                        // (c) 1998 Creative Electronics & Software (CES)
 
 @source:galivan.cpp
 dangar                          // (c) 1986
@@ -32604,6 +32612,7 @@ puyopuy2                        // (c) 1994 Compile + Sega license
 ribbit                          // (c) 1991 Sega
 soniccar                        // (c) 1991 Sega
 sonicpop                        // (c) 1993 Sega
+sonicfgt                        // (c) 1993 Sega
 stkclmns                        // (c) 1994 Sega
 stkclmnsj                       // (c) 1994 Sega
 tantr                           // (c) 1992 Sega
@@ -34513,6 +34522,7 @@ vfremix                         // 1995.06 Virtua Fighter Remix
 vmahjong                        // 1997.02 Virtual Mahjong (Micronet)
 winterht                        // 1997.10 Winter Heat (Data East)
 znpwfv                          // 1997.12 Zen Nippon Pro Wrestling featuring Virtua
+znpwfvt                         // 1997.12 Zen Nippon Pro Wrestling featuring Virtua
 
 @source:su2000.cpp
 su2000                          // (c) 1993 Virtuality
@@ -35799,8 +35809,6 @@ tk80bs                          //
 990189v                         // 1980 TM 990/189 with Color Video Board
 
 @source:tmaster.cpp
-galgame2                        // (c) 1998 Creative Electronics & Software (CES) / Namco
-galgbios                        // (c) 1998 Creative Electronics & Software (CES)
 tm                              // (c) 1996 Midway Games
 tm2k                            // (c) 1996 Midway Games
 tm2ka                           // (c) 1996 Midway Games
