@@ -22,10 +22,11 @@ enum
 {
 	PIC16C5x_PORTA = 0,
 	PIC16C5x_PORTB,
-	PIC16C5x_PORTC
+	PIC16C5x_PORTC,
+	PIC16C5x_PORTD
 };
 
-// port a, 4 bits, 2-way
+// port a, 4 or 8 bits, 2-way
 #define MCFG_PIC16C5x_READ_A_CB(_devcb) \
 	devcb = &pic16c5x_device::set_read_a_callback(*device, DEVCB_##_devcb);
 #define MCFG_PIC16C5x_WRITE_A_CB(_devcb) \
@@ -55,6 +56,7 @@ enum
 
 extern const device_type PIC16C54;
 extern const device_type PIC16C55;
+extern const device_type PIC1655;
 extern const device_type PIC16C56;
 extern const device_type PIC16C57;
 extern const device_type PIC16C58;
@@ -229,7 +231,6 @@ private:
 	void pic16c5x_soft_reset();
 	void pic16c5x_update_watchdog(int counts);
 	void pic16c5x_update_timer(int counts);
-
 };
 
 
@@ -246,6 +247,14 @@ class pic16c55_device : public pic16c5x_device
 public:
 	// construction/destruction
 	pic16c55_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
+};
+
+
+class pic1655_device : public pic16c5x_device
+{
+public:
+	// construction/destruction
+	pic1655_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
 };
 
 
