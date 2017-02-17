@@ -142,3 +142,26 @@ const abc800_format::format abc800_format::formats[] = {
 };
 
 const floppy_format_type FLOPPY_ABC800_FORMAT = &floppy_image_format_creator<abc800_format>;
+
+void abc800_format::build_sector_description(const format &f, uint8_t *sectdata, desc_s *sectors, int track, int head) const
+{
+	if(f.sector_base_id == -1) {
+		for(int i=0; i<f.sector_count; i++) {
+			int cur_offset = 0;
+			for(int j=0; j<f.sector_count; j++)
+				if(f.per_sector_id[j] < f.per_sector_id[i])
+					cur_offset += f.sector_base_size ? f.sector_base_size : f.per_sector_size[j];
+			sectors[i].data = sectdata + cur_offset;
+			sectors[i].size = f.sector_base_size ? f.sector_base_size : f.per_sector_size[i];
+			sectors[i].sector_id = i + f.per_sector_id[0];
+		}
+	} else {
+		int cur_offset = 0;
+		for(int i=0; i<f.sector_count; i++) {
+			sectors[i].data = sectdata + cur_offset;
+			sectors[i].size = f.sector_base_size ? f.sector_base_size : f.per_sector_size[i];
+			cur_offset += sectors[i].size;
+			sectors[i].sector_id = i + f.sector_base_id;
+		}
+	}
+}
