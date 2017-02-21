@@ -37,8 +37,8 @@ public:
 		opt_ttr (*this,     "t", "time_to_run", 1.0,        "time to run the emulation (seconds)"),
 		opt_logs(*this,     "l", "log" ,                    "define terminal to log. This option may be specified repeatedly."),
 		opt_inp(*this,      "i", "input",       "",         "input file to process (default is none)"),
-		opt_loadstate(*this,"",  "loadstate",	"",			"load state from file and continue from there"),
-		opt_savestate(*this,"",  "savestate",	"",			"save state to file at end of run"),
+		opt_loadstate(*this,"",  "loadstate",   "",         "load state from file and continue from there"),
+		opt_savestate(*this,"",  "savestate",   "",         "save state to file at end of run"),
 		opt_grp4(*this,     "Options for convert command",  "These options are only used by the convert command."),
 		opt_type(*this,     "y", "type",        "spice",    "spice:eagle:rinf", "type of file to be converted: spice,eagle,rinf"),
 
@@ -135,8 +135,8 @@ class netlist_tool_t : public netlist::netlist_t
 {
 public:
 
-	netlist_tool_t(const pstring &aname)
-	: netlist::netlist_t(aname)
+	netlist_tool_t(tool_app_t &app, const pstring &aname)
+	: netlist::netlist_t(aname), m_app(app)
 	{
 	}
 
@@ -197,7 +197,8 @@ public:
 		{
 			std::size_t sz = s->m_dt.size * s->m_count;
 			if (s->m_dt.is_float || s->m_dt.is_integral)
-				std::copy((char *)s->m_ptr, (char *) s->m_ptr + sz, p);
+				std::copy(static_cast<char *>(s->m_ptr),
+						static_cast<char *>(s->m_ptr) + sz, p);
 			else
 				log().fatal("found unsupported save element {1}\n", s->m_name);
 			p += sz;
@@ -220,7 +221,7 @@ public:
 		{
 			std::size_t sz = s->m_dt.size * s->m_count;
 			if (s->m_dt.is_float || s->m_dt.is_integral)
-				std::copy(p, p + sz, (char *) s->m_ptr);
+				std::copy(p, p + sz, static_cast<char *>(s->m_ptr));
 			else
 				log().fatal("found unsupported save element {1}\n", s->m_name);
 			p += sz;
@@ -234,13 +235,14 @@ protected:
 	void vlog(const plib::plog_level &l, const pstring &ls) const override;
 
 private:
+	tool_app_t &m_app;
 };
 
 void netlist_tool_t::vlog(const plib::plog_level &l, const pstring &ls) const
 {
 	pstring err = plib::pfmt("{}: {}\n")(l.name())(ls.c_str());
 	// FIXME: ...
-	//pout("{}", err);
+	m_app.pout("{}", err);
 	if (l == plib::plog_level::FATAL)
 		throw netlist::nl_exception(err);
 }
@@ -308,7 +310,7 @@ void tool_app_t::run()
 	plib::chrono::timer<plib::chrono::system_ticks> t;
 	t.start();
 
-	netlist_tool_t nt("netlist");
+	netlist_tool_t nt(*this, "netlist");
 	//plib::perftime_t<plib::exact_ticks> t;
 
 	nt.init();
@@ -387,7 +389,7 @@ void tool_app_t::run()
 
 void tool_app_t::static_compile()
 {
-	netlist_tool_t nt("netlist");
+	netlist_tool_t nt(*this, "netlist");
 
 	nt.init();
 
@@ -472,7 +474,7 @@ void tool_app_t::mac(const netlist::factory::element_t *e)
 
 void tool_app_t::create_header()
 {
-	netlist_tool_t nt("netlist");
+	netlist_tool_t nt(*this, "netlist");
 
 	nt.init();
 
@@ -517,7 +519,7 @@ void tool_app_t::create_header()
 
 void tool_app_t::create_docheader()
 {
-	netlist_tool_t nt("netlist");
+	netlist_tool_t nt(*this, "netlist");
 
 	nt.init();
 
@@ -568,7 +570,7 @@ void tool_app_t::create_docheader()
 
 void tool_app_t::listdevices()
 {
-	netlist_tool_t nt("netlist");
+	netlist_tool_t nt(*this, "netlist");
 	nt.init();
 	if (!opt_verb())
 		nt.log().verbose.set_enabled(false);
