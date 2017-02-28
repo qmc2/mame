@@ -139,8 +139,7 @@ int main(int argc, char *argv[])
 	vnc_osd.register_options();
 
 	// run the actual emulation
-	cli_frontend frontend(options, vnc_osd);
-	int returnCode = frontend.execute(argc, argv);
+	int returnCode = emulator_info::start_frontend(options, vnc_osd, argc, argv);
 	
 	// clean up
 	if ( mp2File )
