@@ -113,7 +113,6 @@ public:
 
 protected:
 	// device-level overrides
-	virtual void device_config_complete() override { update_names(); }
 	virtual void device_start() override;
 	virtual void device_reset() override;
 
@@ -132,7 +131,7 @@ protected:
 	virtual const char *file_extensions() const override { return "80,e0"; }
 
 	// slot interface overrides
-	virtual std::string get_default_card_software() override;
+	virtual std::string get_default_card_software(get_default_card_software_hook &hook) const override;
 
 	devcb_write_line   m_write_irq;
 	devcb_write_line   m_write_res;

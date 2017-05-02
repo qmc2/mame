@@ -24,6 +24,8 @@
 
   serial  device   etc.
 ----------------------------------------------------------------
+ *055     uPD546C  1979, Fidelity Checker Challenger (CR)
+
  @017     uPD552C  1979, Bambino UFO Master-Blaster Station (ET-02)
  @042     uPD552C  1980, Tomy Cosmic Combat (TN-??)
  @043     uPD552C  1979, Bambino Kick The Goal Soccer (ET-10)
@@ -50,6 +52,7 @@
 
  @511     uPD557LC 1980, Takatoku Toys Game Robot 9/Mego Fabulous Fred
  @512     uPD557LC 1980, Castle Toy Tactix
+ *513     uPD557LC 1980, Castle Toy Name That Tune
 
  @060     uPD650C  1979, Mattel Computer Gin
  *085     uPD650C  1980, Roland TR-808
@@ -336,7 +339,7 @@ static INPUT_PORTS_START( ufombs )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT ) PORT_2WAY
 
 	PORT_START("IN.1") // port B
-	PORT_CONFNAME( 0x07, 0x01, "Skill Level" )
+	PORT_CONFNAME( 0x07, 0x01, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x01, "1" )
 	PORT_CONFSETTING(    0x02, "2" )
 	PORT_CONFSETTING(    0x04, "3" )
@@ -609,10 +612,10 @@ static INPUT_PORTS_START( bmsoccer )
 	PORT_BIT( 0x0c, IP_ACTIVE_HIGH, IPT_UNUSED )
 
 	PORT_START("IN.2") // port B
-	PORT_CONFNAME( 0x01, 0x00, "Skill Level" )
+	PORT_CONFNAME( 0x01, 0x00, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x00, "1" )
 	PORT_CONFSETTING(    0x01, "2" )
-	PORT_CONFNAME( 0x02, 0x00, "Players" )
+	PORT_CONFNAME( 0x02, 0x00, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x00, "1" )
 	PORT_CONFSETTING(    0x02, "2" )
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_BUTTON2 ) PORT_NAME("Display/Banana Shoot")
@@ -714,7 +717,7 @@ WRITE8_MEMBER(bmsafari_state::speaker_w)
 
 static INPUT_PORTS_START( bmsafari )
 	PORT_START("IN.0") // port A
-	PORT_CONFNAME( 0x07, 0x04, "Skill Level" )
+	PORT_CONFNAME( 0x07, 0x04, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x04, "1" )
 	PORT_CONFSETTING(    0x02, "2" )
 	PORT_CONFSETTING(    0x01, "3" )
@@ -865,10 +868,10 @@ static INPUT_PORTS_START( splasfgt )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_UNUSED )
 
 	PORT_START("IN.4") // port A
-	PORT_CONFNAME( 0x01, 0x00, "Players" )
+	PORT_CONFNAME( 0x01, 0x00, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x00, "1" )
 	PORT_CONFSETTING(    0x01, "2" )
-	PORT_CONFNAME( 0x02, 0x00, "Skill Level" )
+	PORT_CONFNAME( 0x02, 0x00, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x00, "1" )
 	PORT_CONFSETTING(    0x02, "2" )
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_START )
@@ -1293,7 +1296,7 @@ static INPUT_PORTS_START( efball )
 	PORT_CONFNAME( 0x01, 0x00, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x00, "Amateur" )
 	PORT_CONFSETTING(    0x01, "Professional" )
-	PORT_CONFNAME( 0x02, 0x02, "Players" )
+	PORT_CONFNAME( 0x02, 0x02, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x02, "1" )
 	PORT_CONFSETTING(    0x00, "2" )
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_START ) PORT_NAME("P1 Down-Field")
@@ -2020,7 +2023,7 @@ WRITE8_MEMBER(tccombat_state::plate_w)
 static INPUT_PORTS_START( tccombat )
 	PORT_START("IN.0") // port A
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_BUTTON1 )
-	PORT_CONFNAME( 0x02, 0x02, "Skill Level" )
+	PORT_CONFNAME( 0x02, 0x02, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x02, "1" )
 	PORT_CONFSETTING(    0x00, "2" )
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT ) PORT_2WAY
@@ -2154,7 +2157,7 @@ static INPUT_PORTS_START( tmtennis )
 	PORT_CONFSETTING(     0x001, "Practice" )
 	PORT_CONFSETTING(     0x100, "Pro 1" ) // -> difficulty_switch
 	PORT_CONFSETTING(     0x000, "Pro 2" )
-	PORT_CONFNAME( 0x02, 0x00, "Players" )
+	PORT_CONFNAME( 0x02, 0x00, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x00, "1" )
 	PORT_CONFSETTING(    0x02, "2" )
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_Q) PORT_NAME("P2 Button 1")
@@ -2619,7 +2622,7 @@ static INPUT_PORTS_START( alnchase )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_UP    ) PORT_PLAYER(2)
 
 	PORT_START("IN.2") // port B
-	PORT_CONFNAME( 0x01, 0x01, "Players" )
+	PORT_CONFNAME( 0x01, 0x01, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x01, "1" )
 	PORT_CONFSETTING(    0x00, "2" )
 	PORT_CONFNAME( 0x02, 0x00, DEF_STR( Difficulty ) )

@@ -633,7 +633,7 @@ static MACHINE_CONFIG_START( to7, thomson_state )
 	MCFG_SCREEN_VISIBLE_AREA ( 0, THOM_TOTAL_WIDTH * 2 - 1,
 				0, THOM_TOTAL_HEIGHT - 1 )
 	MCFG_SCREEN_UPDATE_DRIVER( thomson_state, screen_update_thom )
-	MCFG_SCREEN_VBLANK_DRIVER( thomson_state, thom_vblank )
+	MCFG_SCREEN_VBLANK_CALLBACK(WRITELINE(thomson_state, thom_vblank))
 	MCFG_SCREEN_PALETTE("palette")
 
 	MCFG_PALETTE_ADD ( "palette", 4097 ) /* 12-bit color + transparency */
@@ -669,11 +669,6 @@ static MACHINE_CONFIG_START( to7, thomson_state )
 /* floppy */
 	MCFG_DEVICE_ADD("mc6843", MC6843, 0)
 
-	MCFG_WD2793_ADD("wd2793", XTAL_1MHz)
-
-	MCFG_FLOPPY_DRIVE_ADD("wd2793:0", cd90_640_floppies, "dd", thomson_state::cd90_640_formats)
-	MCFG_FLOPPY_DRIVE_ADD("wd2793:1", cd90_640_floppies, "dd", thomson_state::cd90_640_formats)
-
 	MCFG_DEVICE_ADD(FLOPPY_0, LEGACY_FLOPPY, 0)
 	MCFG_LEGACY_FLOPPY_CONFIG(thomson_floppy_interface)
 	MCFG_LEGACY_FLOPPY_IDX_CB(WRITELINE(thomson_state, fdc_index_0_w))
@@ -686,6 +681,11 @@ static MACHINE_CONFIG_START( to7, thomson_state )
 	MCFG_DEVICE_ADD(FLOPPY_3, LEGACY_FLOPPY, 0)
 	MCFG_LEGACY_FLOPPY_CONFIG(thomson_floppy_interface)
 	MCFG_LEGACY_FLOPPY_IDX_CB(WRITELINE(thomson_state, fdc_index_3_w))
+
+		MCFG_WD2793_ADD("wd2793", XTAL_1MHz)
+		MCFG_FLOPPY_DRIVE_ADD("wd2793:0", cd90_640_floppies, "dd", thomson_state::cd90_640_formats)
+		MCFG_FLOPPY_DRIVE_ADD("wd2793:1", cd90_640_floppies, "dd", thomson_state::cd90_640_formats)
+
 
 /* network */
 	MCFG_DEVICE_ADD( "mc6854", MC6854, 0 )

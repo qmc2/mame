@@ -84,7 +84,6 @@
 #include "network.h"
 #include "ui/uimain.h"
 #include <time.h>
-#include "server_http.hpp"
 #include "rapidjson/include/rapidjson/writer.h"
 #include "rapidjson/include/rapidjson/stringbuffer.h"
 
@@ -112,6 +111,7 @@ osd_interface &running_machine::osd() const
 running_machine::running_machine(const machine_config &_config, machine_manager &manager)
 	: firstcpu(nullptr),
 		primary_screen(nullptr),
+		m_side_effect_disabled(0),
 		debug_flags(0),
 		m_config(_config),
 		m_system(_config.gamedrv()),
@@ -290,6 +290,8 @@ int running_machine::run(bool quiet)
 	// use try/catch for deep error recovery
 	try
 	{
+		m_manager.http()->clear();
+
 		// move to the init phase
 		m_current_phase = MACHINE_PHASE_INIT;
 
@@ -338,6 +340,8 @@ int running_machine::run(bool quiet)
 
 		export_http_api();
 
+		m_manager.http()->update();
+
 		// run the CPUs until a reset or exit
 		m_hard_reset_pending = false;
 		while ((!m_hard_reset_pending && !m_exit_pending) || m_saveload_schedule != SLS_NONE)
@@ -362,6 +366,7 @@ int running_machine::run(bool quiet)
 
 			g_profiler.stop();
 		}
+		m_manager.http()->clear();
 
 		// and out via the exit phase
 		m_current_phase = MACHINE_PHASE_EXIT;
@@ -1184,9 +1189,7 @@ running_machine::logerror_callback_item::logerror_callback_item(logerror_callbac
 
 void running_machine::export_http_api()
 {
-	if (!options().http()) return;
-
-	m_manager.http_server()->on_get("/api/machine", [this](auto response, auto request)
+	m_manager.http()->add("/api/machine", [this](std::string)
 	{
 		rapidjson::StringBuffer s;
 		rapidjson::Writer<rapidjson::StringBuffer> writer(s);
@@ -1204,8 +1207,7 @@ void running_machine::export_http_api()
 		writer.EndArray();
 		writer.EndObject();
 
-		response->type("application/json");
-		response->status(200).send(s.GetString());
+		return std::make_tuple(std::string(s.GetString()), 200, "application/json");
 	});
 }
 

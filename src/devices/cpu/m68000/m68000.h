@@ -7,9 +7,12 @@
 
 
 
-
+// SoftFloat 2 lacks an include guard
+#ifndef softfloat_h
+#define softfloat_h 1
 #include "softfloat/milieu.h"
 #include "softfloat/softfloat.h"
+#endif
 
 
 /* MMU constants */
@@ -404,6 +407,7 @@ public:
 	// construction/destruction
 	m68000_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
 	m68000_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock, const char *shortname, const char *source);
+	m68000_device(const machine_config &mconfig, const device_type type, const char *name, const char *tag, device_t *owner, uint32_t clock, const char *shortname, const char *source);
 
 	m68000_device(const machine_config &mconfig, const char *name, const char *tag, device_t *owner, uint32_t clock,
 						const device_type type, uint32_t prg_data_width, uint32_t prg_address_bits, address_map_constructor internal_map, const char *shortname, const char *source);

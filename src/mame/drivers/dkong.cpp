@@ -617,7 +617,7 @@ WRITE8_MEMBER(dkong_state::p8257_drq_w)
 READ8_MEMBER(dkong_state::dkong_in2_r)
 {
 	/* mcu status (sound feedback) is inverted bit4 from port B (8039) */
-	uint8_t mcustatus = m_dev_vp2->bit4_q_r(space, 0);
+	uint8_t mcustatus = m_dev_vp2->bit4_q_r();
 	uint8_t r;
 
 	r = (ioport("IN2")->read() & 0xBF) | (mcustatus << 6);
@@ -811,7 +811,7 @@ static ADDRESS_MAP_START( dkong_map, AS_PROGRAM, 8, dkong_state )
 	AM_RANGE(0x7000, 0x73ff) AM_RAM AM_SHARE("sprite_ram") /* sprite set 1 */
 	AM_RANGE(0x7400, 0x77ff) AM_RAM_WRITE(dkong_videoram_w) AM_SHARE("video_ram")
 	AM_RANGE(0x7800, 0x780f) AM_DEVREADWRITE("dma8257", i8257_device, read, write)   /* P8257 control registers */
-	AM_RANGE(0x7c00, 0x7c00) AM_READ_PORT("IN0") AM_LATCH8_WRITE("ls175.3d")    /* IN0, sound CPU intf */
+	AM_RANGE(0x7c00, 0x7c00) AM_READ_PORT("IN0") AM_DEVWRITE("ls175.3d", latch8_device, write)    /* IN0, sound CPU intf */
 	AM_RANGE(0x7c80, 0x7c80) AM_READ_PORT("IN1") AM_WRITE(radarscp_grid_color_w)/* IN1 */
 
 	AM_RANGE(0x7d00, 0x7d00) AM_READ(dkong_in2_r)                               /* IN2 */
@@ -834,7 +834,7 @@ static ADDRESS_MAP_START( dkongjr_map, AS_PROGRAM, 8, dkong_state )
 	AM_RANGE(0x7400, 0x77ff) AM_RAM_WRITE(dkong_videoram_w) AM_SHARE("video_ram")
 	AM_RANGE(0x7800, 0x780f) AM_DEVREADWRITE("dma8257", i8257_device, read, write)   /* P8257 control registers */
 
-	AM_RANGE(0x7c00, 0x7c00) AM_READ_PORT("IN0") AM_LATCH8_WRITE("ls174.3d")    /* IN0, sound interface */
+	AM_RANGE(0x7c00, 0x7c00) AM_READ_PORT("IN0") AM_DEVWRITE("ls174.3d", latch8_device, write)    /* IN0, sound interface */
 
 	AM_RANGE(0x7c80, 0x7c80) AM_READ_PORT("IN1") AM_WRITE(dkongjr_gfxbank_w)
 	AM_RANGE(0x7c80, 0x7c87) AM_DEVWRITE("ls259.4h", latch8_device, bit0_w)     /* latch for sound and signals above */
@@ -861,9 +861,9 @@ static ADDRESS_MAP_START( dkong3_map, AS_PROGRAM, 8, dkong_state )
 	AM_RANGE(0x6800, 0x6fff) AM_RAM
 	AM_RANGE(0x7000, 0x73ff) AM_RAM AM_SHARE("sprite_ram") /* sprite set 1 */
 	AM_RANGE(0x7400, 0x77ff) AM_RAM_WRITE(dkong_videoram_w) AM_SHARE("video_ram")
-	AM_RANGE(0x7c00, 0x7c00) AM_READ_PORT("IN0")  AM_LATCH8_WRITE("latch1")
-	AM_RANGE(0x7c80, 0x7c80) AM_READ_PORT("IN1")  AM_LATCH8_WRITE("latch2")
-	AM_RANGE(0x7d00, 0x7d00) AM_READ_PORT("DSW0") AM_LATCH8_WRITE("latch3")
+	AM_RANGE(0x7c00, 0x7c00) AM_READ_PORT("IN0")  AM_DEVWRITE("latch1", latch8_device, write)
+	AM_RANGE(0x7c80, 0x7c80) AM_READ_PORT("IN1")  AM_DEVWRITE("latch2", latch8_device, write)
+	AM_RANGE(0x7d00, 0x7d00) AM_READ_PORT("DSW0") AM_DEVWRITE("latch3", latch8_device, write)
 	AM_RANGE(0x7d80, 0x7d80) AM_READ_PORT("DSW1") AM_WRITE(dkong3_2a03_reset_w)
 	AM_RANGE(0x7e80, 0x7e80) AM_WRITE(dkong3_coin_counter_w)
 	AM_RANGE(0x7e81, 0x7e81) AM_WRITE(dkong3_gfxbank_w)
@@ -2571,6 +2571,50 @@ ROM_START( dkingjr )
 	ROM_LOAD( "mb7051.8j",  0x0300, 0x0020, CRC(a5a6f2ca) SHA1(5507fb6f5c8845c4421c2996e9f76c818d987623) )   /* unknown */
 ROM_END
 
+
+ROM_START( maguila )
+	ROM_REGION( 0x10000, "maincpu", 0 )
+	ROM_LOAD( "1.7.bin",  0x0000, 0x1000, CRC(8b1d6956) SHA1(3fb8c84dd5686c9e72a71fd7c21e8f345dd61f2e) ) // content identical to dkongjrb but double size, 1st and 2nd half identical
+	ROM_CONTINUE(         0x3000, 0x1000 )
+	ROM_CONTINUE(         0x0000, 0x1000 )
+	ROM_CONTINUE(         0x3000, 0x1000 )
+	ROM_LOAD( "2.7.bin",  0x2000, 0x0800, CRC(650c71d6) SHA1(6554502a859b1cc8048c1e531eff1038010ccf32) ) // content identical to dkongjrb but double size, 1st and 2nd half identical
+	ROM_CONTINUE(         0x4800, 0x0800 )
+	ROM_CONTINUE(         0x1000, 0x0800 )
+	ROM_CONTINUE(         0x5800, 0x0800 )
+	ROM_CONTINUE(         0x2000, 0x0800 )
+	ROM_CONTINUE(         0x4800, 0x0800 )
+	ROM_CONTINUE(         0x1000, 0x0800 )
+	ROM_CONTINUE(         0x5800, 0x0800 )
+	ROM_LOAD( "3.7.bin",  0x4000, 0x0800, CRC(56c387b1) SHA1(2b1efc5921c9ff24433785814019a620f7e64859) ) // content identical to dkongjrb but double size, 1st and 2nd half identical
+	ROM_CONTINUE(         0x2800, 0x0800 )
+	ROM_CONTINUE(         0x5000, 0x0800 )
+	ROM_CONTINUE(         0x1800, 0x0800 )
+	ROM_CONTINUE(         0x4000, 0x0800 )
+	ROM_CONTINUE(         0x2800, 0x0800 )
+	ROM_CONTINUE(         0x5000, 0x0800 )
+	ROM_CONTINUE(         0x1800, 0x0800 )
+
+	ROM_REGION( 0x1000, "soundcpu", 0 ) /* sound */
+	ROM_LOAD( "4.7.bin",       0x0000, 0x1000, CRC(715da5f8) SHA1(f708c3fd374da65cbd9fe2e191152f5d865414a0) ) // 2732
+
+	ROM_REGION( 0x2000, "gfx1", 0 )
+	ROM_LOAD( "9dm.7.bin",     0x0000, 0x1000, CRC(469e2237) SHA1(514f3d37d6ba4c623cccf682c4b7acc1339b949d) ) // 2732
+	ROM_LOAD( "10dm.7.bin",    0x1000, 0x1000, CRC(a983198d) SHA1(a99f8e4793c8217cd2328652ca5a123ea7ec2d54) ) // 2732
+
+	ROM_REGION( 0x4000, "gfx2", 0 )
+	ROM_LOAD( "5.bin",     0x0000, 0x1000, CRC(9f531527) SHA1(6b426cea91135ae1924506f964d856fc475c08e1) ) // 2732
+	ROM_LOAD( "6.bin",     0x1000, 0x1000, CRC(32fbd41b) SHA1(1f98facc2c20dc4b8722085f269f123601382994) ) // 2732
+	ROM_LOAD( "7.bin",     0x2000, 0x1000, CRC(2286bf8e) SHA1(7511e83aa5a4de988048fc2db4de7b3d5aabee8c) ) // 2732
+	ROM_LOAD( "8.bin",     0x3000, 0x1000, CRC(627007a0) SHA1(f71091b65978f7f386ba3c30a3ffe824412bbe67) ) // 2732
+
+	ROM_REGION( 0x0320, "proms", 0 ) // PROMs almost identical to dkingjr
+	ROM_LOAD( "9k_82s129.9k",  0x0000, 0x0100, CRC(b37d1108) SHA1(4f2276c3d082e18aed567c1e96001b97397d9962) )   /* palette low 4 bits, 3 reads were provided, this is the first */
+	ROM_LOAD( "9l_82s129.9l",  0x0100, 0x0100, CRC(bfcaef32) SHA1(f688a08eedc6317eb0d7c39b30dfc8e41a3a9cb8) )   /* palette high 4 bits, 3 reads were provided, this is the first */
+	ROM_LOAD( "6b_82s129.6b",  0x0200, 0x0100, CRC(dbf185bf) SHA1(2697a991a4afdf079dd0b7e732f71c7618f43b70) )   /* character color codes on a per-column basis */
+	ROM_LOAD( "8j_82s123.8j",  0x0300, 0x0020, CRC(a5a6f2ca) SHA1(5507fb6f5c8845c4421c2996e9f76c818d987623) )   /* unknown */
+ROM_END
+
 ROM_START( pestplce )
 	ROM_REGION( 0x10000, "maincpu", 0 )
 	ROM_LOAD( "pest.1p",      0x0000, 0x1000, CRC(80d50721) SHA1(9c0e7571b1664dce741595a2d13dc9d7709b35a9) )
@@ -3357,6 +3401,7 @@ GAME( 1982, dkongjre,  dkongjr,  dkongjr,   dkongjr,  driver_device, 0,        R
 GAME( 1982, dkongjrpb, dkongjr,  dkongjr,   dkongjr,  driver_device, 0,        ROT90,  "bootleg", "Donkey Kong Junior (P kit, bootleg)", MACHINE_SUPPORTS_SAVE ) // definitely not issued by Nintendo
 GAME( 1982, jrking,    dkongjr,  dkongjr,   dkongjr,  driver_device, 0,        ROT90,  "bootleg", "Junior King (bootleg of Donkey Kong Jr.)", MACHINE_SUPPORTS_SAVE )
 GAME( 1982, dkingjr,   dkongjr,  dkongjr,   dkongjr,  dkong_state,   dkingjr,  ROT90,  "bootleg", "Donkey King Jr. (bootleg of Donkey Kong Jr.)", MACHINE_SUPPORTS_SAVE )
+GAME( 1982, maguila,   dkongjr,  dkongjr,   dkongjr,  dkong_state,   dkingjr,  ROT90,  "bootleg (Aguipa)", "Up Maguila (bootleg of Donkey Kong Jr.)", MACHINE_SUPPORTS_SAVE )
 
 GAME( 1983, dkong3,    0,        dkong3,    dkong3,   driver_device, 0,        ROT90,  "Nintendo of America", "Donkey Kong 3 (US)", MACHINE_SUPPORTS_SAVE )
 GAME( 1983, dkong3j,   dkong3,   dkong3,    dkong3,   driver_device, 0,        ROT90,  "Nintendo", "Donkey Kong 3 (Japan)", MACHINE_SUPPORTS_SAVE )

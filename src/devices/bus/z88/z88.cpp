@@ -86,18 +86,6 @@ void z88cart_slot_device::device_start()
 	m_flp_timer->reset();
 }
 
-//-------------------------------------------------
-//  device_config_complete - perform any
-//  operations now that the configuration is
-//  complete
-//-------------------------------------------------
-
-void z88cart_slot_device::device_config_complete()
-{
-	// set brief and instance name
-	update_names();
-}
-
 
 //-------------------------------------------------
 //  device_timer - handler timer events
@@ -175,7 +163,7 @@ void z88cart_slot_device::call_unload()
     get default card software
 -------------------------------------------------*/
 
-std::string z88cart_slot_device::get_default_card_software()
+std::string z88cart_slot_device::get_default_card_software(get_default_card_software_hook &hook) const
 {
 	return software_get_default_slot("128krom");
 }

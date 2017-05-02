@@ -92,18 +92,6 @@ void iq151cart_slot_device::device_start()
 
 }
 
-//-------------------------------------------------
-//  device_config_complete - perform any
-//  operations now that the configuration is
-//  complete
-//-------------------------------------------------
-
-void iq151cart_slot_device::device_config_complete()
-{
-	// set brief and instance name
-	update_names();
-}
-
 
 /*-------------------------------------------------
     read
@@ -193,7 +181,7 @@ image_init_result iq151cart_slot_device::call_load()
     get default card software
 -------------------------------------------------*/
 
-std::string iq151cart_slot_device::get_default_card_software()
+std::string iq151cart_slot_device::get_default_card_software(get_default_card_software_hook &hook) const
 {
 	return software_get_default_slot("basic6");
 }

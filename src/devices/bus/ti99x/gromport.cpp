@@ -1354,7 +1354,7 @@ image_init_result ti99_cartridge_device::call_load()
 {
 	// File name is in m_basename
 	// return true = error
-	if (TRACE_CHANGE) logerror("Loading %s in slot %s\n", m_basename.c_str());
+	if (TRACE_CHANGE) logerror("Loading %s in slot %s\n", basename());
 
 	if (loaded_through_softlist())
 	{
@@ -1530,7 +1530,6 @@ bool ti99_cartridge_device::is_grom_idle()
 
 void ti99_cartridge_device::device_config_complete()
 {
-	update_names();
 	m_connector = static_cast<ti99_cartridge_connector_device*>(owner());
 }
 

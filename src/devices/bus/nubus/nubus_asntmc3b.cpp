@@ -77,7 +77,7 @@ const tiny_rom_entry *nubus_appleenet_device::device_rom_region() const
 //-------------------------------------------------
 
 nubus_mac8390_device::nubus_mac8390_device(const machine_config &mconfig, device_type type, const char *name, const char *tag, device_t *owner, uint32_t clock, const char *shortname, const char *source) :
-		device_t(mconfig, NUBUS_ASNTMC3NB, name, tag, owner, clock, shortname, source),
+		device_t(mconfig, type, name, tag, owner, clock, shortname, source),
 		device_nubus_card_interface(mconfig, *this),
 		m_dp83902(*this, MAC8390_839X)
 {
@@ -101,7 +101,7 @@ void nubus_mac8390_device::device_start()
 {
 	uint32_t slotspace;
 	char mac[7];
-	uint32_t num = rand();
+	uint32_t num = machine().rand();
 	memset(m_prom, 0x57, 16);
 	sprintf(mac+2, "\x1b%c%c%c", (num >> 16) & 0xff, (num >> 8) & 0xff, num & 0xff);
 	mac[0] = mac[1] = 0;  // avoid gcc warning

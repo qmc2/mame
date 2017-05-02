@@ -89,8 +89,6 @@
 //**************************************************************************
 
 // forward declarations
-class gfxdecode_device;
-class palette_device;
 typedef delegate<void ()> driver_callback_delegate;
 
 
@@ -223,19 +221,6 @@ private:
 	u8                          m_flip_screen_x;
 	u8                          m_flip_screen_y;
 };
-
-
-// this template function creates a stub which constructs a device
-template<class DriverClass>
-std::unique_ptr<device_t> driver_device_creator_impl(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock)
-{
-	assert(owner == nullptr);
-	assert(clock == 0);
-	return make_unique_clear<DriverClass>(mconfig, &driver_device_creator_impl<DriverClass>, tag);
-}
-
-template <class DriverClass>
-constexpr device_type driver_device_creator = &driver_device_creator_impl<DriverClass>;
 
 
 #endif  /* MAME_EMU_DRIVER_H */

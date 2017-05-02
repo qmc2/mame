@@ -39,7 +39,6 @@ public:
 
 	// device-level overrides
 	virtual void device_start() override;
-	virtual void device_config_complete() override { update_names(MSX_SLOT_CARTRIDGE, "cartridge", "cart"); }
 
 	// image-level overrides
 	virtual image_init_result call_load() override;
@@ -53,9 +52,11 @@ public:
 	virtual bool is_reset_on_load() const override { return true; }
 	virtual const char *image_interface() const override { return "msx_cart"; }
 	virtual const char *file_extensions() const override { return "mx1,bin,rom"; }
+	virtual const char *custom_instance_name() const override { return "cartridge"; }
+	virtual const char *custom_brief_instance_name() const override { return "cart"; }
 
 	// slot interface overrides
-	virtual std::string get_default_card_software() override;
+	virtual std::string get_default_card_software(get_default_card_software_hook &hook) const override;
 
 	// msx_internal_slot-level overrides
 	virtual DECLARE_READ8_MEMBER(read) override;
@@ -67,7 +68,7 @@ protected:
 	devcb_write_line m_irq_handler;
 	msx_cart_interface *m_cartridge;
 
-	int get_cart_type(uint8_t *rom, uint32_t length);
+	static int get_cart_type(const uint8_t *rom, uint32_t length);
 };
 
 
@@ -78,9 +79,10 @@ public:
 	msx_slot_yamaha_expansion_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock);
 
 	virtual void device_start() override;
-	virtual void device_config_complete() override { update_names(MSX_SLOT_YAMAHA_EXPANSION, "cartridge60pin", "cart60p"); }
 
 	virtual const char *image_interface() const override { return "msx_yamaha_60pin"; }
+	virtual const char *custom_instance_name() const override { return "cartridge60pin"; }
+	virtual const char *custom_brief_instance_name() const override { return "cart60p"; }
 };
 
 

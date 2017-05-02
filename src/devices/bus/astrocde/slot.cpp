@@ -88,18 +88,6 @@ void astrocade_cart_slot_device::device_start()
 	m_cart = dynamic_cast<device_astrocade_cart_interface *>(get_card_device());
 }
 
-//-------------------------------------------------
-//  device_config_complete - perform any
-//  operations now that the configuration is
-//  complete
-//-------------------------------------------------
-
-void astrocade_cart_slot_device::device_config_complete()
-{
-	// set brief and instance name
-	update_names();
-}
-
 
 //-------------------------------------------------
 //  ASTROCADE PCB
@@ -187,12 +175,12 @@ image_init_result astrocade_cart_slot_device::call_load()
  get default card software
  -------------------------------------------------*/
 
-std::string astrocade_cart_slot_device::get_default_card_software()
+std::string astrocade_cart_slot_device::get_default_card_software(get_default_card_software_hook &hook) const
 {
-	if (open_image_file(mconfig().options()))
+	if (hook.image_file())
 	{
 		const char *slot_string;
-		uint32_t size = m_file->size();
+		uint32_t size = hook.image_file()->size();
 		int type = ASTROCADE_STD;
 
 		if (size == 0x40000)
@@ -203,7 +191,6 @@ std::string astrocade_cart_slot_device::get_default_card_software()
 		slot_string = astrocade_get_slot(type);
 
 		//printf("type: %s\n", slot_string);
-		clear();
 
 		return std::string(slot_string);
 	}

@@ -686,7 +686,6 @@ public:
 	virtual void call_unload() override;
 protected:
 	// device-level overrides
-	virtual void device_config_complete() override { update_names(); }
 	virtual void device_start() override { }
 };
 
@@ -719,7 +718,6 @@ public:
 	virtual void call_unload() override;
 protected:
 	// device-level overrides
-	virtual void device_config_complete() override { update_names(); }
 	virtual void device_start() override { }
 };
 
@@ -753,7 +751,6 @@ public:
 	virtual void call_unload() override;
 protected:
 	// device-level overrides
-	virtual void device_config_complete() override { update_names(); }
 	virtual void device_start() override { }
 };
 
@@ -786,7 +783,6 @@ public:
 	virtual void call_unload() override;
 protected:
 	// device-level overrides
-	virtual void device_config_complete() override { update_names(); }
 	virtual void device_start() override { }
 };
 
@@ -1836,7 +1832,7 @@ INTERRUPT_GEN_MEMBER(pdp1_state::pdp1_interrupt)
 			m_maincpu->pulse_start_clear();    /* pulse Start Clear line */
 			m_maincpu->set_state_int(PDP1_PC, m_maincpu->state_int(PDP1_TA));
 			m_maincpu->set_state_int(PDP1_MA, m_maincpu->state_int(PDP1_PC));
-			m_maincpu->set_state_int(PDP1_IR, LAC); /* this instruction is actually executed */
+			m_maincpu->set_state_int(PDP1_IR, pdp1_device::LAC); /* this instruction is actually executed */
 
 			m_maincpu->set_state_int(PDP1_MB, (signed)m_maincpu->space(AS_PROGRAM).read_dword(PDP1_MA<<2));
 			m_maincpu->set_state_int(PDP1_AC, m_maincpu->state_int(PDP1_MB));
@@ -1847,7 +1843,7 @@ INTERRUPT_GEN_MEMBER(pdp1_state::pdp1_interrupt)
 			m_maincpu->set_state_int(PDP1_PC, m_maincpu->state_int(PDP1_TA));
 			m_maincpu->set_state_int(PDP1_MA, m_maincpu->state_int(PDP1_PC));
 			m_maincpu->set_state_int(PDP1_AC, m_maincpu->state_int(PDP1_TW));
-			m_maincpu->set_state_int(PDP1_IR, DAC); /* this instruction is actually executed */
+			m_maincpu->set_state_int(PDP1_IR, pdp1_device::DAC); /* this instruction is actually executed */
 
 			m_maincpu->set_state_int(PDP1_MB, m_maincpu->state_int(PDP1_AC));
 			m_maincpu->space(AS_PROGRAM).write_dword(m_maincpu->state_int(PDP1_MA)<<2, m_maincpu->state_int(PDP1_MB));
@@ -1937,7 +1933,7 @@ static MACHINE_CONFIG_START( pdp1, pdp1_state )
 	MCFG_SCREEN_SIZE(virtual_width, virtual_height)
 	MCFG_SCREEN_VISIBLE_AREA(0, virtual_width-1, 0, virtual_height-1)
 	MCFG_SCREEN_UPDATE_DRIVER(pdp1_state, screen_update_pdp1)
-	MCFG_SCREEN_VBLANK_DRIVER(pdp1_state, screen_eof_pdp1)
+	MCFG_SCREEN_VBLANK_CALLBACK(WRITELINE(pdp1_state, screen_vblank_pdp1))
 	MCFG_SCREEN_PALETTE("palette")
 
 	MCFG_DEVICE_ADD("crt", CRT, 0)

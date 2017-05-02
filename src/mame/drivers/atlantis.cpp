@@ -80,9 +80,11 @@
 #define A2D_IRQ_SHIFT       6
 #define VBLANK_IRQ_SHIFT    7
 
-// Not sure how duart interrupts are mapped
-#define UART1_IRQ_SHIFT     ZEUS2_IRQ_SHIFT
-#define UART2_IRQ_SHIFT     ZEUS2_IRQ_SHIFT
+// DUART mapped to int3 (map3 = 0x08)
+#define UART1_IRQ_SHIFT     ZEUS1_IRQ_SHIFT
+#define UART2_IRQ_SHIFT     ZEUS1_IRQ_SHIFT
+// PCI mapped to int2 (map2 = 0x10)
+#define PCI_IRQ_SHIFT       ZEUS2_IRQ_SHIFT
 
 /* static interrupts */
 #define GALILEO_IRQ_NUM         MIPS3_IRQ0
@@ -227,7 +229,7 @@ WRITE32_MEMBER(atlantis_state::board_ctrl_w)
 				m_dcs->reset_w(CLEAR_LINE);
 			}
 		}
-		if (LOG_IRQ)
+		if ((changeData & RESET_IDE) || LOG_IRQ)
 			logerror("%s:board_ctrl_w write to CTRL_RESET offset %04X = %08X & %08X bus offset = %08X\n", machine().describe_context(), newOffset, data, mem_mask, offset);
 		break;
 	case CTRL_VSYNC_CLEAR:
@@ -705,51 +707,13 @@ static INPUT_PORTS_START( mwskins )
 	PORT_START("DIPS")
 	PORT_DIPNAME(0x0003, 0x0003, "Boot Mode")
 	PORT_DIPSETTING(0x0003, "Run Game")
-	PORT_DIPSETTING(0x0002, "Boot EEPROM Based Self Test")
-	PORT_DIPSETTING(0x0001, "Boot Disk Based Self Test")
-	PORT_DIPSETTING(0x0000, "Run Factory Tests")
+	PORT_DIPSETTING(0x0002, "Boot Disk Based Self Test")
+	PORT_DIPSETTING(0x0001, "Boot EEPROM Based Self Test")
+	PORT_DIPSETTING(0x0000, "Run Interactive Tests")
 	PORT_DIPNAME(0x0004, 0x0004, "Boot Message")
 	PORT_DIPSETTING(0x0004, "Quiet")
 	PORT_DIPSETTING(0x0000, "Squawk During Boot")
-	PORT_DIPNAME(0x0008, 0x0008, "Reserved")
-	PORT_DIPSETTING(0x0008, DEF_STR(Off))
-	PORT_DIPSETTING(0x0000, DEF_STR(On))
-	PORT_DIPNAME(0x0010, 0x0010, "Reserved")
-	PORT_DIPSETTING(0x0010, DEF_STR(Off))
-	PORT_DIPSETTING(0x0000, DEF_STR(On))
-	PORT_DIPNAME(0x0020, 0x0020, "Reserved")
-	PORT_DIPSETTING(0x0020, DEF_STR(Off))
-	PORT_DIPSETTING(0x0000, DEF_STR(On))
-	PORT_DIPNAME(0x0040, 0x0040, "Reserved")
-	PORT_DIPSETTING(0x0040, DEF_STR(Off))
-	PORT_DIPSETTING(0x0000, DEF_STR(On))
-	PORT_DIPNAME(0x0080, 0x0080, "Reserved")
-	PORT_DIPSETTING(0x0080, DEF_STR(Off))
-	PORT_DIPSETTING(0x0000, DEF_STR(On))
-	PORT_DIPNAME(0x0100, 0x0100, "Unknown0100")
-	PORT_DIPSETTING(0x0100, DEF_STR(Off))
-	PORT_DIPSETTING(0x0000, DEF_STR(On))
-	PORT_DIPNAME(0x0200, 0x0200, "Unknown0200")
-	PORT_DIPSETTING(0x0200, DEF_STR(Off))
-	PORT_DIPSETTING(0x0000, DEF_STR(On))
-	PORT_DIPNAME(0x0400, 0x0400, "Unknown0400")
-	PORT_DIPSETTING(0x0400, DEF_STR(Off))
-	PORT_DIPSETTING(0x0000, DEF_STR(On))
-	PORT_DIPNAME(0x0800, 0x0800, "Unknown0800")
-	PORT_DIPSETTING(0x0800, DEF_STR(Off))
-	PORT_DIPSETTING(0x0000, DEF_STR(On))
-	PORT_DIPNAME(0x1000, 0x1000, "Unknown1000")
-	PORT_DIPSETTING(0x1000, DEF_STR(Off))
-	PORT_DIPSETTING(0x0000, DEF_STR(On))
-	PORT_DIPNAME(0x2000, 0x2000, "Unknown2000")
-	PORT_DIPSETTING(0x2000, DEF_STR(Off))
-	PORT_DIPSETTING(0x0000, DEF_STR(On))
-	PORT_DIPNAME(0x4000, 0x4000, "Unknown4000")
-	PORT_DIPSETTING(0x4000, DEF_STR(Off))
-	PORT_DIPSETTING(0x0000, DEF_STR(On))
-	PORT_DIPNAME(0x8000, 0x8000, "Unknown8000")
-	PORT_DIPSETTING(0x8000, DEF_STR(Off))
-	PORT_DIPSETTING(0x0000, DEF_STR(On))
+	PORT_DIPUNUSED(0xfff8, 0xfff8)
 
 	PORT_START("SYSTEM")
 	PORT_BIT(0x0001, IP_ACTIVE_LOW, IPT_COIN1)
@@ -828,6 +792,7 @@ DEVICE_INPUT_DEFAULTS_END
  *  Machine driver
  *
  *************************************/
+
 #define PCI_ID_NILE     ":pci:00.0"
 #define PCI_ID_9050     ":pci:0b.0"
 #define PCI_ID_IDE      ":pci:0c.0"
@@ -851,7 +816,7 @@ static MACHINE_CONFIG_START( mwskins, atlantis_state )
 
 	MCFG_NVRAM_ADD_0FILL("rtc")
 
-	MCFG_IDE_PCI_ADD(PCI_ID_IDE, 0x10950646, 0x03, 0x0)
+	MCFG_IDE_PCI_ADD(PCI_ID_IDE, 0x10950646, 0x07, 0x0)
 	MCFG_IDE_PCI_IRQ_HANDLER(DEVWRITELINE(":", atlantis_state, ide_irq))
 
 	/* video hardware */

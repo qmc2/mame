@@ -300,6 +300,8 @@ VIDEOS["HD61830"] = true
 --VIDEOS+= HD63484"] = true
 VIDEOS["HD66421"] = true
 VIDEOS["HLCD0515"] = true
+VIDEOS["HLCD0538"] = true
+VIDEOS["HP1LL3"] = true
 VIDEOS["HUC6202"] = true
 VIDEOS["HUC6260"] = true
 VIDEOS["HUC6261"] = true
@@ -392,6 +394,7 @@ MACHINES["COM8116"] = true
 MACHINES["CR589"] = true
 MACHINES["CS4031"] = true
 MACHINES["CS8221"] = true
+--MACHINES["CXD1095"] = true
 MACHINES["DM9334"] = true
 MACHINES["DP8390"] = true
 --MACHINES["DS1204"] = true
@@ -425,6 +428,7 @@ MACHINES["I8271"] = true
 MACHINES["I8279"] = true
 MACHINES["I8355"] = true
 MACHINES["IDE"] = true
+MACHINES["IE15"] = true
 MACHINES["IM6402"] = true
 MACHINES["INS8154"] = true
 MACHINES["INS8250"] = true
@@ -483,6 +487,7 @@ MACHINES["MPU401"] = true
 MACHINES["MSM5832"] = true
 MACHINES["MSM58321"] = true
 MACHINES["MSM6242"] = true
+--MACHINES["MSM6253"] = true
 MACHINES["NCR5380"] = true
 MACHINES["NCR5380N"] = true
 MACHINES["NCR5390"] = true
@@ -599,6 +604,7 @@ MACHINES["SONY_DRIVE"] = true
 MACHINES["SCNXX562"] = true
 MACHINES["FGA002"] = true
 MACHINES["INPUT_MERGER"] = true
+-- MACHINES["K054321"] = true
 
 --------------------------------------------------
 -- specify available bus cores
@@ -650,6 +656,7 @@ BUSES["GAMEBOY"] = true
 BUSES["GAMEGEAR"] = true
 BUSES["GBA"] = true
 BUSES["GENERIC"] = true
+BUSES["HPHIL"] = true
 BUSES["IEEE488"] = true
 BUSES["IMI7000"] = true
 BUSES["INTV"] = true
@@ -700,6 +707,7 @@ BUSES["SPC1000"] = true
 BUSES["SUNKBD"] = true
 BUSES["SVI_EXPANDER"] = true
 BUSES["SVI_SLOT"] = true
+BUSES["TI8X"] = true
 BUSES["TI99PEB"] = true
 BUSES["TI99X"] = true
 BUSES["TIKI100"] = true
@@ -794,8 +802,10 @@ FORMATS["GTP_CAS"] = true
 FORMATS["HECTOR_MINIDISC"] = true
 FORMATS["HECT_DSK"] = true
 FORMATS["HECT_TAP"] = true
+FORMATS["HP_IPC_DSK"] = true
 FORMATS["IQ151_DSK"] = true
 FORMATS["ITT3030_DSK"] = true
+FORMATS["JFD_DSK"] = true
 FORMATS["JVC_DSK"] = true
 FORMATS["KAYPRO_DSK"] = true
 FORMATS["KC85_DSK"] = true
@@ -825,6 +835,7 @@ FORMATS["PC98_DSK"] = true
 FORMATS["PC_DSK"] = true
 FORMATS["PHC25_CAS"] = true
 FORMATS["PK8020_DSK"] = true
+FORMATS["PPG_DSK"] = true
 FORMATS["PMD_CAS"] = true
 FORMATS["PRIMOPTP"] = true
 FORMATS["PYLDIN_DSK"] = true
@@ -876,10 +887,12 @@ function linkProjects_mame_mess(_target, _subtarget)
 		"acorn",
 		"act",
 		"adc",
+		"agat",
 		"alesis",
 		"altos",
 		"ami",
 		"amiga",
+		"ampro",
 		"amstrad",
 		"apf",
 		"apollo",
@@ -952,6 +965,7 @@ function linkProjects_mame_mess(_target, _subtarget)
 		"homelab",
 		"hp",
 		"ibm6580",
+		"ie15",
 		"imp",
 		"intel",
 		"interpro",
@@ -1317,6 +1331,14 @@ files {
 	MAME_DIR .. "src/mame/includes/superslave.h",
 }
 
+createMESSProjects(_target, _subtarget, "agat")
+files {
+	MAME_DIR .. "src/mame/drivers/agat.cpp",
+	MAME_DIR .. "src/mame/includes/apple2.h",
+	MAME_DIR .. "src/mame/video/agat7.cpp",
+	MAME_DIR .. "src/mame/video/agat7.h",
+}
+
 createMESSProjects(_target, _subtarget, "alesis")
 files {
 	MAME_DIR .. "src/mame/drivers/alesis.cpp",
@@ -1340,6 +1362,11 @@ createMESSProjects(_target, _subtarget, "amiga")
 files {
 	MAME_DIR .. "src/mame/drivers/amiga.cpp",
 	MAME_DIR .. "src/mame/includes/amiga.h",
+}
+
+createMESSProjects(_target, _subtarget, "ampro")
+files {
+	MAME_DIR .. "src/mame/drivers/lb186.cpp",
 }
 
 createMESSProjects(_target, _subtarget, "amstrad")
@@ -2059,6 +2086,11 @@ files {
 	MAME_DIR .. "src/mame/machine/ibm6580_fdc.h",
 }
 
+createMESSProjects(_target, _subtarget, "ie15")
+files {
+	MAME_DIR .. "src/mame/drivers/ie15.cpp",
+}
+
 createMESSProjects(_target, _subtarget, "intel")
 files {
 	MAME_DIR .. "src/mame/drivers/basic52.cpp",
@@ -2410,6 +2442,7 @@ files {
 	MAME_DIR .. "src/mame/drivers/novag6502.cpp",
 	MAME_DIR .. "src/mame/drivers/novagbase.h",
 	MAME_DIR .. "src/mame/drivers/novag68k.cpp",
+	MAME_DIR .. "src/mame/drivers/novagmcs48.cpp",
 	MAME_DIR .. "src/mame/drivers/ssystem3.cpp",
 	MAME_DIR .. "src/mame/includes/ssystem3.h",
 	MAME_DIR .. "src/mame/video/ssystem3.cpp",
@@ -2707,6 +2740,7 @@ files {
 
 createMESSProjects(_target, _subtarget, "sharp")
 files {
+	MAME_DIR .. "src/mame/drivers/hh_sm500.cpp",
 	MAME_DIR .. "src/mame/drivers/hh_sm510.cpp",
 	MAME_DIR .. "src/mame/video/mz700.cpp",
 	MAME_DIR .. "src/mame/drivers/mz700.cpp",
@@ -3303,6 +3337,7 @@ files {
 	MAME_DIR .. "src/mame/drivers/binbug.cpp",
 	MAME_DIR .. "src/mame/drivers/besta.cpp",
 	MAME_DIR .. "src/mame/drivers/bitgraph.cpp",
+	MAME_DIR .. "src/mame/drivers/bpmmicro.cpp",
 	MAME_DIR .. "src/mame/drivers/br8641.cpp",
 	MAME_DIR .. "src/mame/drivers/busicom.cpp",
 	MAME_DIR .. "src/mame/includes/busicom.h",
@@ -3339,6 +3374,7 @@ files {
 	MAME_DIR .. "src/mame/drivers/elwro800.cpp",
 	MAME_DIR .. "src/mame/drivers/eti660.cpp",
 	MAME_DIR .. "src/mame/includes/eti660.h",
+	MAME_DIR .. "src/mame/drivers/eurocom2.cpp",
 	MAME_DIR .. "src/mame/drivers/excali64.cpp",
 	MAME_DIR .. "src/mame/drivers/fanucs15.cpp",
 	MAME_DIR .. "src/mame/drivers/fanucspmg.cpp",
@@ -3363,9 +3399,6 @@ files {
 	MAME_DIR .. "src/mame/drivers/i7000.cpp",
 	MAME_DIR .. "src/mame/drivers/ibm3153.cpp",
 	MAME_DIR .. "src/mame/drivers/icatel.cpp",
-	MAME_DIR .. "src/mame/drivers/ie15.cpp",
-	MAME_DIR .. "src/mame/machine/ie15_kbd.cpp",
-	MAME_DIR .. "src/mame/machine/ie15_kbd.h",
 	MAME_DIR .. "src/mame/drivers/if800.cpp",
 	MAME_DIR .. "src/mame/drivers/imsai.cpp",
 	MAME_DIR .. "src/mame/drivers/indiana.cpp",
@@ -3387,6 +3420,7 @@ files {
 	MAME_DIR .. "src/mame/drivers/micronic.cpp",
 	MAME_DIR .. "src/mame/includes/micronic.h",
 	MAME_DIR .. "src/mame/drivers/mini2440.cpp",
+	MAME_DIR .. "src/mame/drivers/minitel_2_rpic.cpp",
 	MAME_DIR .. "src/mame/drivers/mmd1.cpp",
 	MAME_DIR .. "src/mame/drivers/mod8.cpp",
 	MAME_DIR .. "src/mame/drivers/modellot.cpp",

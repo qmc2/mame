@@ -251,6 +251,32 @@
 #define SAME_SRC_DSTF  (decode)->same_src_dstf
 #define SAME_SRCF_DST  (decode)->same_srcf_dst
 
+
+/* Memory access */
+/* read byte */
+#define READ_B(addr)            m_program->read_byte((addr))
+/* read half-word */
+#define READ_HW(addr)           m_program->read_word((addr) & ~1)
+/* read word */
+#define READ_W(addr)            m_program->read_dword((addr) & ~3)
+
+/* write byte */
+#define WRITE_B(addr, data)     m_program->write_byte(addr, data)
+/* write half-word */
+#define WRITE_HW(addr, data)    m_program->write_word((addr) & ~1, data)
+/* write word */
+#define WRITE_W(addr, data)     m_program->write_dword((addr) & ~3, data)
+
+
+/* I/O access */
+/* read word */
+#define IO_READ_W(addr)         m_io->read_dword(((addr) >> 11) & 0x7ffc)
+/* write word */
+#define IO_WRITE_W(addr, data)  m_io->write_dword(((addr) >> 11) & 0x7ffc, data)
+
+
+#define READ_OP(addr)          m_direct->read_word((addr), m_opcodexor)
+
 //**************************************************************************
 //  INTERNAL ADDRESS MAP
 //**************************************************************************
@@ -340,7 +366,7 @@ e116xs_device::e116xs_device(const machine_config &mconfig, const char *tag, dev
 //-------------------------------------------------
 
 e116xsr_device::e116xsr_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
-	: hyperstone_device(mconfig, "E1-16XSR", tag, owner, clock, E116XT, 16, 16, ADDRESS_MAP_NAME(e116_16k_iram_map), "e116xsr", __FILE__)
+	: hyperstone_device(mconfig, "E1-16XSR", tag, owner, clock, E116XSR, 16, 16, ADDRESS_MAP_NAME(e116_16k_iram_map), "e116xsr", __FILE__)
 {
 }
 

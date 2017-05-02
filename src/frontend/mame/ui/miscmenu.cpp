@@ -131,10 +131,8 @@ void menu_bios_selection::handle()
 				machine().options().set_value("bios", val-1, OPTION_PRIORITY_CMDLINE, error);
 				assert(error.empty());
 			} else {
-				std::string error;
-				std::string value = string_format("%s,bios=%d", machine().options().main_value(dev->owner()->tag()+1), val-1);
-				machine().options().set_value(dev->owner()->tag()+1, value.c_str(), OPTION_PRIORITY_CMDLINE, error);
-				assert(error.empty());
+				const char *slot_option_name = dev->owner()->tag() + 1;
+				machine().options().slot_options()[slot_option_name].set_bios(string_format("%d", val - 1));
 			}
 			reset(reset_options::REMEMBER_REF);
 		}
@@ -603,7 +601,7 @@ void menu_export::handle()
 						for (auto & elem : m_list)
 							drvlist.include(driver_list::find(*elem));
 
-						info_xml_creator creator(drvlist);
+						info_xml_creator creator(drvlist, true);
 						creator.output(pfile, ((uintptr_t)menu_event->itemref == 1) ? false : true);
 						fclose(pfile);
 						machine().popmessage(_("%s.xml saved under ui folder."), filename.c_str());

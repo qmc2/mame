@@ -59,9 +59,9 @@
  @MP3005   TMS1730   1989, Tiger Copy Cat (model 7-522)
  @MP3201   TMS1000   1977, Milton Bradley Electronic Battleship (1977, model 4750A)
  @MP3208   TMS1000   1977, Milton Bradley Electronic Battleship (1977, model 4750B)
- @MP3226   TMS1000   1978, Milton Bradley Simon (model 4850)
+ @MP3226   TMS1000   1978, Milton Bradley Simon (Rev A)
  *MP3232   TMS1000   1979, Fonas 2-Player Baseball (no "MP" on chip label)
- *MP3300   TMS1000   1979, Milton Bradley Simon (newer)
+ @MP3300   TMS1000   1979, Milton Bradley Simon (Rev F)
  @MP3301A  TMS1000   1979, Milton Bradley Big Trak
  *MP3320A  TMS1000   1979, Coleco Head to Head Basketball
  @M32001   TMS1000   1981, Coleco Quiz Wiz Challenger (note: MP3398, MP3399, M3200x?)
@@ -82,6 +82,7 @@
  @MP3476   TMS1100   1979, Milton Bradley Super Simon
   MP3479   TMS1100   1980, MicroVision cartridge: Baseball
   MP3481   TMS1100   1979, MicroVision cartridge: Connect Four
+ *MP3489   TMS1100   1980, Kenner Live Action Football
  @MP3491   TMS1100   1979, Mattel Thoroughbred Horse Race Analyzer
   MP3496   TMS1100   1980, MicroVision cartridge: Sea Duel
   M34009   TMS1100   1981, MicroVision cartridge: Alien Raiders (note: MP3498, MP3499, M3400x..)
@@ -105,12 +106,12 @@
  @MP7551   TMS1670   1980, Entex Color Football 4 (6009)
  @MPF553   TMS1670   1980, Gakken/Entex Jackpot: Gin Rummy & Black Jack (6008) (note: assume F to be a misprint)
  *MP7573   TMS1670?  1981, Entex Select-a-Game cartridge: Football 4 (? note: 40-pin, VFD-capable)
+ *M95041   ?         1983, Tsukuda Game Pachinko (? note: 40-pin, VFD-capable)
 
   inconsistent:
 
  @TMS1007  TMS1000   1976, TSI Speech+ (S14002-A)
  @CD7282SL TMS1100   1981, Tandy Radio Shack Tandy-12 (serial is similar to TI Speak & Spell series?)
- *M95041   ?         1983, Tsukuda Game Pachinko (? note: 40-pin, VFD-capable)
 
   (* denotes not yet emulated by MAME, @ denotes it's in this driver)
 
@@ -123,7 +124,6 @@
   - some of the games rely on the fact that faster/longer strobed leds appear brighter,
     eg. tc4/h2hfootb(offense), bankshot(cue ball), ...
   - stopthiep: unable to start a game (may be intentional?)
-  - tbreakup: some of the leds flicker (rom and PLAs doublechecked)
   - 7in1ss: in 2-player mode, game select and skill select can be configured
     after selecting a game?
   - bship discrete sound, netlist is documented
@@ -140,7 +140,9 @@
 #include "sound/s14001a.h"
 #include "sound/sn76477.h"
 #include "video/hlcd0515.h"
-
+#include "bus/generic/carts.h"
+#include "bus/generic/slot.h"
+#include "softlist.h"
 #include "screen.h"
 #include "speaker.h"
 #include "rendlay.h"
@@ -190,6 +192,7 @@
 #include "merlin.lh" // clickable
 #include "mmerlin.lh" // clickable
 #include "monkeysee.lh"
+#include "quizwizc.lh"
 #include "raisedvl.lh"
 #include "simon.lh" // clickable
 #include "speechp.lh"
@@ -500,7 +503,7 @@ static INPUT_PORTS_START( matchnum )
 	PORT_START("IN.2") // R5
 	PORT_BIT( 0x03, IP_ACTIVE_HIGH, IPT_UNUSED )
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_SELECT ) PORT_NAME("Change")
-	PORT_CONFNAME( 0x08, 0x08, "Players" )
+	PORT_CONFNAME( 0x08, 0x08, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x08, "1" )
 	PORT_CONFSETTING(    0x00, "2" )
 
@@ -662,7 +665,7 @@ static INPUT_PORTS_START( mathmagi )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_SLASH_PAD) PORT_NAME(UTF8_DIVIDE)
 
 	PORT_START("IN.5") // R10
-	PORT_CONFNAME( 0x01, 0x00, "Players")
+	PORT_CONFNAME( 0x01, 0x00, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x00, "1" )
 	PORT_CONFSETTING(    0x01, "2" )
 	PORT_BIT( 0x0e, IP_ACTIVE_HIGH, IPT_UNUSED )
@@ -1217,7 +1220,7 @@ static INPUT_PORTS_START( cqback )
 	PORT_BIT( 0x02, 0x02, IPT_SPECIAL ) PORT_CONDITION("IN.1", 0x01, EQUALS, 0x00) // run/kick
 
 	PORT_START("IN.2") // K4
-	PORT_CONFNAME( 0x03, 0x02, "Skill Level" )
+	PORT_CONFNAME( 0x03, 0x02, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x02, "1" )
 	PORT_CONFSETTING(    0x01, "2" )
 
@@ -1320,7 +1323,7 @@ READ8_MEMBER(h2hfootb_state::read_k)
 
 static INPUT_PORTS_START( h2hfootb )
 	PORT_START("IN.0") // K1
-	PORT_CONFNAME( 0x03, 0x01, "Players" )
+	PORT_CONFNAME( 0x03, 0x01, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x01, "1" )
 	PORT_CONFSETTING(    0x02, "2" )
 
@@ -1329,7 +1332,7 @@ static INPUT_PORTS_START( h2hfootb )
 	PORT_BIT( 0x02, 0x02, IPT_SPECIAL ) PORT_CONDITION("IN.1", 0x01, EQUALS, 0x00) // run/kick
 
 	PORT_START("IN.2") // K4
-	PORT_CONFNAME( 0x03, 0x01, "Skill Level" )
+	PORT_CONFNAME( 0x03, 0x01, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x01, "1" )
 	PORT_CONFSETTING(    0x02, "2" )
 
@@ -1465,7 +1468,7 @@ static INPUT_PORTS_START( h2hbaseb )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON1 ) PORT_NAME("Swing")
 
 	PORT_START("IN.5") // fake
-	PORT_CONFNAME( 0x01, 0x00, "Skill Level" ) PORT_CHANGED_MEMBER(DEVICE_SELF, h2hbaseb_state, skill_switch, nullptr)
+	PORT_CONFNAME( 0x01, 0x00, DEF_STR( Difficulty ) ) PORT_CHANGED_MEMBER(DEVICE_SELF, h2hbaseb_state, skill_switch, nullptr)
 	PORT_CONFSETTING(    0x00, "1" )
 	PORT_CONFSETTING(    0x01, "2" )
 INPUT_PORTS_END
@@ -1572,7 +1575,7 @@ READ8_MEMBER(h2hboxing_state::read_k)
 
 static INPUT_PORTS_START( h2hboxing )
 	PORT_START("IN.0") // R0
-	PORT_CONFNAME( 0x01, 0x00, "Players" )
+	PORT_CONFNAME( 0x01, 0x00, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x00, "1" )
 	PORT_CONFSETTING(    0x01, "2" )
 	PORT_BIT( 0x0e, IP_ACTIVE_HIGH, IPT_UNUSED )
@@ -1626,9 +1629,23 @@ MACHINE_CONFIG_END
   Coleco Quiz Wiz Challenger
   * TMS1000NLL M32001-N2 (die label 1000E, M32001)
   * 4 7seg LEDs, 17 other LEDs, 1-bit sound
-  
-  This is a 4-player version of Quiz Wiz.
-  ..
+
+  This is a 4-player version of Quiz Wiz, a multiple choice quiz game.
+  According to the manual, Quiz Wiz cartridges are compatible with it.
+  The question books are needed to play, as well as optional game pieces.
+
+  Cartridge pinout:
+  1 R4
+  2 R6
+  3 R7
+  4 K1
+  5 N/C
+  6 R8
+  7 R5
+  8 R9
+
+  The cartridge connects one or more of the R pins to K1. Together with the
+  question numbers, the game generates a pseudo-random answerlist.
 
 ***************************************************************************/
 
@@ -1636,16 +1653,39 @@ class quizwizc_state : public hh_tms1k_state
 {
 public:
 	quizwizc_state(const machine_config &mconfig, device_type type, const char *tag)
-		: hh_tms1k_state(mconfig, type, tag)
+		: hh_tms1k_state(mconfig, type, tag),
+		m_pinout(0)
 	{ }
+
+	DECLARE_DEVICE_IMAGE_LOAD_MEMBER(cartridge);
+	u16 m_pinout; // cartridge R pins
 
 	void prepare_display();
 	DECLARE_WRITE16_MEMBER(write_r);
 	DECLARE_WRITE16_MEMBER(write_o);
 	DECLARE_READ8_MEMBER(read_k);
+
+protected:
+	virtual void machine_start() override;
 };
 
 // handlers
+
+DEVICE_IMAGE_LOAD_MEMBER(quizwizc_state, cartridge)
+{
+	if (!image.loaded_through_softlist())
+	{
+		image.seterror(IMAGE_ERROR_UNSPECIFIED, "Can only load through softwarelist");
+		return image_init_result::FAIL;
+	}
+
+	// get cartridge pinout K1 to R connections
+	std::string pinout(image.get_feature("pinout"));
+	m_pinout = std::stoul(pinout, nullptr, 2) & 0xe7;
+	m_pinout = BITSWAP8(m_pinout,4,3,7,5,2,1,6,0) << 4;
+
+	return image_init_result::PASS;
+}
 
 void quizwizc_state::prepare_display()
 {
@@ -1653,7 +1693,7 @@ void quizwizc_state::prepare_display()
 	set_display_segmask(0x3c0, 0x7f);
 
 	// note: O7 is on VSS
-	display_matrix(7, 11, m_o, (m_r & 0x3ff) | (m_o << 3 & 0x400));
+	display_matrix(8, 11, m_o, m_r | 0x400);
 }
 
 WRITE16_MEMBER(quizwizc_state::write_r)
@@ -1662,6 +1702,7 @@ WRITE16_MEMBER(quizwizc_state::write_r)
 	m_speaker->level_w(data >> 10 & 1);
 
 	// R0-R5: input mux
+	// R4-R9: to cartridge slot
 	m_inp_mux = data & 0x3f;
 
 	// R0-R3: led select
@@ -1680,17 +1721,58 @@ WRITE16_MEMBER(quizwizc_state::write_o)
 READ8_MEMBER(quizwizc_state::read_k)
 {
 	// K: multiplexed inputs
-	return 0;
-	//return read_inputs(6);
+	// K1: cartridge pin 4 (pin 5 N/C)
+	return read_inputs(6) | ((m_r & m_pinout) ? 1 : 0);
 }
 
 
 // config
 
 static INPUT_PORTS_START( quizwizc )
-	PORT_START("IN.0")
-	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_BUTTON1 )
+	PORT_START("IN.0") // R0
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_BUTTON1 ) PORT_PLAYER(1) // A (player 1 at bottom, increment counter-clockwise)
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_BUTTON2 ) PORT_PLAYER(1) // B
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_BUTTON3 ) PORT_PLAYER(1) // C
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON4 ) PORT_PLAYER(1) // D
+
+	PORT_START("IN.1") // R1
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_BUTTON1 ) PORT_PLAYER(4)
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_BUTTON2 ) PORT_PLAYER(4)
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_BUTTON3 ) PORT_PLAYER(4)
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON4 ) PORT_PLAYER(4)
+
+	PORT_START("IN.2") // R2
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_BUTTON1 ) PORT_PLAYER(3)
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_BUTTON2 ) PORT_PLAYER(3)
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_BUTTON3 ) PORT_PLAYER(3)
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON4 ) PORT_PLAYER(3)
+
+	PORT_START("IN.3") // R3
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_BUTTON1 ) PORT_PLAYER(2)
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_BUTTON2 ) PORT_PLAYER(2)
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_BUTTON3 ) PORT_PLAYER(2)
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON4 ) PORT_PLAYER(2)
+
+	PORT_START("IN.4") // R4
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_UNUSED )
+	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_START ) PORT_NAME("Go")
+	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_BUTTON6 ) PORT_NAME("Fast Forward")
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON5 ) PORT_NAME("Slow Forward")
+
+	PORT_START("IN.5") // R5
+	PORT_CONFNAME( 0x02, 0x00, "Game Select")
+	PORT_CONFSETTING(    0x00, "1" )
+	PORT_CONFSETTING(    0x02, "2" )
+	PORT_BIT( 0x0d, IP_ACTIVE_HIGH, IPT_UNUSED )
 INPUT_PORTS_END
+
+void quizwizc_state::machine_start()
+{
+	hh_tms1k_state::machine_start();
+
+	// register for savestates
+	save_item(NAME(m_pinout));
+}
 
 static MACHINE_CONFIG_START( quizwizc, quizwizc_state )
 
@@ -1701,12 +1783,18 @@ static MACHINE_CONFIG_START( quizwizc, quizwizc_state )
 	MCFG_TMS1XXX_WRITE_O_CB(WRITE16(quizwizc_state, write_o))
 
 	MCFG_TIMER_DRIVER_ADD_PERIODIC("display_decay", hh_tms1k_state, display_decay_tick, attotime::from_msec(1))
-	//MCFG_DEFAULT_LAYOUT(layout_quizwizc)
+	MCFG_DEFAULT_LAYOUT(layout_quizwizc)
 
 	/* sound hardware */
 	MCFG_SPEAKER_STANDARD_MONO("mono")
 	MCFG_SOUND_ADD("speaker", SPEAKER_SOUND, 0)
 	MCFG_SOUND_ROUTE(ALL_OUTPUTS, "mono", 0.25)
+
+	/* cartridge */
+	MCFG_GENERIC_CARTSLOT_ADD("cartslot", generic_plain_slot, "quizwiz_cart")
+	MCFG_GENERIC_MANDATORY
+	MCFG_GENERIC_LOAD(quizwizc_state, cartridge)
+	MCFG_SOFTWARE_LIST_ADD("cart_list", "quizwiz")
 MACHINE_CONFIG_END
 
 
@@ -1724,7 +1812,7 @@ MACHINE_CONFIG_END
   sold in a pack. Gameplay has emphasis on strategy, read the official manual
   on how to play. MAME external artwork is needed for the switchable overlays.
 
-  Cartridge socket:
+  Cartridge pinout:
   1 N/C
   2 9V+
   3 power switch
@@ -1736,28 +1824,44 @@ MACHINE_CONFIG_END
 
   The cartridge connects pin 8 with one of the K-pins.
 
-  Available cartridges:
-  - Football    (K8, confirmed)
-  - Hockey      (K4?)
-  - Soccer      (K2?)
-  - Basketball  (K1?)
-
 ***************************************************************************/
 
 class tc4_state : public hh_tms1k_state
 {
 public:
 	tc4_state(const machine_config &mconfig, device_type type, const char *tag)
-		: hh_tms1k_state(mconfig, type, tag)
+		: hh_tms1k_state(mconfig, type, tag),
+		m_pinout(0)
 	{ }
+
+	DECLARE_DEVICE_IMAGE_LOAD_MEMBER(cartridge);
+	u8 m_pinout; // cartridge K pins
 
 	void prepare_display();
 	DECLARE_WRITE16_MEMBER(write_r);
 	DECLARE_WRITE16_MEMBER(write_o);
 	DECLARE_READ8_MEMBER(read_k);
+
+protected:
+	virtual void machine_start() override;
 };
 
 // handlers
+
+DEVICE_IMAGE_LOAD_MEMBER(tc4_state, cartridge)
+{
+	if (!image.loaded_through_softlist())
+	{
+		image.seterror(IMAGE_ERROR_UNSPECIFIED, "Can only load through softwarelist");
+		return image_init_result::FAIL;
+	}
+
+	// get cartridge pinout R9 to K connections
+	std::string pinout(image.get_feature("pinout"));
+	m_pinout = std::stoul(pinout, nullptr, 0) & 0xf;
+
+	return image_init_result::PASS;
+}
 
 void tc4_state::prepare_display()
 {
@@ -1775,7 +1879,7 @@ WRITE16_MEMBER(tc4_state::write_r)
 
 	// R0-R5: input mux
 	// R9: to cartridge slot
-	m_inp_mux = (data & 0x3f) | (data >> 3 & 0x40);
+	m_inp_mux = data & 0x3f;
 
 	// R0-R4: select led
 	// R6: led 8 state
@@ -1793,8 +1897,8 @@ WRITE16_MEMBER(tc4_state::write_o)
 
 READ8_MEMBER(tc4_state::read_k)
 {
-	// K: multiplexed inputs
-	return read_inputs(7);
+	// K: multiplexed inputs, cartridge pins from R9
+	return read_inputs(6) | ((m_r & 0x200) ? m_pinout : 0);
 }
 
 
@@ -1836,14 +1940,15 @@ static INPUT_PORTS_START( tc4 )
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_BUTTON1 ) PORT_PLAYER(2) PORT_NAME("P2 Pass/Shoot Button 1") // left
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_BUTTON2 ) PORT_PLAYER(2) PORT_NAME("P2 Pass/Shoot Button 2") // middle
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON4 ) PORT_PLAYER(2) PORT_NAME("P2 D/K Button")
-
-	PORT_START("IN.6") // R9
-	PORT_CONFNAME( 0x0f, 0x08, "Cartridge")
-	PORT_CONFSETTING(    0x01, "Basketball" )
-	PORT_CONFSETTING(    0x02, "Soccer" )
-	PORT_CONFSETTING(    0x04, "Hockey" )
-	PORT_CONFSETTING(    0x08, "Football" )
 INPUT_PORTS_END
+
+void tc4_state::machine_start()
+{
+	hh_tms1k_state::machine_start();
+
+	// register for savestates
+	save_item(NAME(m_pinout));
+}
 
 static MACHINE_CONFIG_START( tc4, tc4_state )
 
@@ -1860,6 +1965,12 @@ static MACHINE_CONFIG_START( tc4, tc4_state )
 	MCFG_SPEAKER_STANDARD_MONO("mono")
 	MCFG_SOUND_ADD("speaker", SPEAKER_SOUND, 0)
 	MCFG_SOUND_ROUTE(ALL_OUTPUTS, "mono", 0.25)
+
+	/* cartridge */
+	MCFG_GENERIC_CARTSLOT_ADD("cartslot", generic_plain_slot, "tc4_cart")
+	MCFG_GENERIC_MANDATORY // system won't power on without cartridge
+	MCFG_GENERIC_LOAD(tc4_state, cartridge)
+	MCFG_SOFTWARE_LIST_ADD("cart_list", "tc4")
 MACHINE_CONFIG_END
 
 
@@ -1937,7 +2048,7 @@ READ8_MEMBER(cnbaskb_state::read_k)
 
 static INPUT_PORTS_START( cnbaskb )
 	PORT_START("IN.0") // R0
-	PORT_CONFNAME( 0x01, 0x00, "Skill Level" )
+	PORT_CONFNAME( 0x01, 0x00, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x00, "1" ) // amateur
 	PORT_CONFSETTING(    0x01, "2" ) // professional
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_BUTTON1 )
@@ -2062,7 +2173,7 @@ static INPUT_PORTS_START( cmsport )
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_BUTTON1 ) PORT_NAME("Shoot")
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_START1 ) PORT_NAME("Score")
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_UNUSED )
-	PORT_CONFNAME( 0x08, 0x00, "Skill Level" )
+	PORT_CONFNAME( 0x08, 0x00, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x00, "1" ) // amateur
 	PORT_CONFSETTING(    0x08, "2" ) // professional
 INPUT_PORTS_END
@@ -2182,7 +2293,7 @@ static INPUT_PORTS_START( cnfball )
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_BUTTON1 ) PORT_NAME("Kick")
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_START2 ) PORT_NAME("Score")
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_START1 ) PORT_NAME("Status")
-	PORT_CONFNAME( 0x08, 0x08, "Skill Level" )
+	PORT_CONFNAME( 0x08, 0x08, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x08, "1" ) // college
 	PORT_CONFSETTING(    0x00, "2" ) // professional
 
@@ -2291,7 +2402,7 @@ static INPUT_PORTS_START( cnfball2 )
 	PORT_CONFSETTING(    0x00, DEF_STR( Off ) )
 	PORT_CONFSETTING(    0x02, DEF_STR( On ) )
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_SELECT ) PORT_TOGGLE PORT_NAME("Play Selector") // pass/run
-	PORT_CONFNAME( 0x08, 0x00, "Skill Level" )
+	PORT_CONFNAME( 0x08, 0x00, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x00, "1" ) // college
 	PORT_CONFSETTING(    0x08, "2" ) // professional
 
@@ -2348,7 +2459,7 @@ MACHINE_CONFIG_END
     CONIC 102-001, led PCB: CONIC 100-003 REV A itac
   * TMS1000NLL MP0908 (die label 1000B, MP0908)
   * 2 7seg LEDs, 30 other LEDs, 1-bit sound
-  
+
   This is a peg solitaire game, with random start position.
 
   known releases:
@@ -2434,7 +2545,7 @@ static INPUT_PORTS_START( eleciq )
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_D) PORT_NAME("Button D")
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_4) PORT_NAME("Button 4")
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_PGDN) PORT_CODE(KEYCODE_3_PAD) PORT_NAME("Down-Right")
-	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_RIGHT) PORT_CODE(KEYCODE_4_PAD) PORT_NAME("Right")
+	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_RIGHT) PORT_CODE(KEYCODE_6_PAD) PORT_NAME("Right")
 
 	PORT_START("IN.4") // R5
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_E) PORT_NAME("Button E")
@@ -2446,7 +2557,7 @@ static INPUT_PORTS_START( eleciq )
 	PORT_BIT( 0x0e, IP_ACTIVE_HIGH, IPT_UNUSED )
 
 	PORT_START("IN.6") // R9
-	PORT_CONFNAME( 0x01, 0x00, "Skill Level" )
+	PORT_CONFNAME( 0x01, 0x00, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x00, "1" ) // amateur
 	PORT_CONFSETTING(    0x01, "2" ) // professional
 	PORT_BIT( 0x0e, IP_ACTIVE_HIGH, IPT_UNUSED )
@@ -2559,7 +2670,7 @@ static INPUT_PORTS_START( esoccer )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_UP ) PORT_COCKTAIL PORT_16WAY
 
 	PORT_START("IN.2") // R2
-	PORT_CONFNAME( 0x03, 0x01, "Players" )
+	PORT_CONFNAME( 0x03, 0x01, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x01, "1" ) // Auto
 	PORT_CONFSETTING(    0x02, "2" ) // Manual
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_BUTTON1 )
@@ -2674,7 +2785,7 @@ static INPUT_PORTS_START( ebball )
 	PORT_START("IN.0") // R1
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_BUTTON2 ) PORT_PLAYER(2) PORT_NAME("P2 Change Up")
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_START ) PORT_NAME("Change Sides")
-	PORT_CONFNAME( 0x04, 0x04, "Players" )
+	PORT_CONFNAME( 0x04, 0x04, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x04, "1" ) // Auto
 	PORT_CONFSETTING(    0x00, "2" ) // Manual
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_UNUSED )
@@ -2802,7 +2913,7 @@ READ8_MEMBER(ebball2_state::read_k)
 static INPUT_PORTS_START( ebball2 )
 	PORT_START("IN.0") // R3
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_UNUSED )
-	PORT_CONFNAME( 0x02, 0x02, "Players" )
+	PORT_CONFNAME( 0x02, 0x02, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x02, "1" ) // Auto
 	PORT_CONFSETTING(    0x00, "2" ) // Manual
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_BUTTON1 ) PORT_PLAYER(2) PORT_NAME("P2 Fast Ball")
@@ -2972,14 +3083,14 @@ static INPUT_PORTS_START( ebball3 )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON5 ) PORT_PLAYER(2) PORT_NAME("P2 Steal Defense")
 
 	PORT_START("IN.2") // R2
-	PORT_CONFNAME( 0x01, 0x01, "Players" )
+	PORT_CONFNAME( 0x01, 0x01, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x01, "1" ) // Auto
 	PORT_CONFSETTING(    0x00, "2" ) // Manual
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_BUTTON2 ) PORT_NAME("P1 Bunt")
 	PORT_BIT( 0x0c, IP_ACTIVE_HIGH, IPT_UNUSED )
 
 	PORT_START("IN.3") // fake
-	PORT_CONFNAME( 0x01, 0x00, "Skill Level" ) PORT_CHANGED_MEMBER(DEVICE_SELF, ebball3_state, skill_switch, nullptr)
+	PORT_CONFNAME( 0x01, 0x00, DEF_STR( Difficulty ) ) PORT_CHANGED_MEMBER(DEVICE_SELF, ebball3_state, skill_switch, nullptr)
 	PORT_CONFSETTING(    0x00, "Amateur" )
 	PORT_CONFSETTING(    0x01, "Professional" )
 INPUT_PORTS_END
@@ -3109,7 +3220,7 @@ static INPUT_PORTS_START( esbattle )
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_BUTTON1 ) PORT_COCKTAIL PORT_NAME("P2 Fire 1") // F1
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_BUTTON2 ) PORT_COCKTAIL PORT_NAME("P2 Fire 2") // F2
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_BUTTON3 ) PORT_COCKTAIL PORT_NAME("P2 Launch")
-	PORT_CONFNAME( 0x08, 0x08, "Players" )
+	PORT_CONFNAME( 0x08, 0x08, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x08, "1" ) // Auto
 	PORT_CONFSETTING(    0x00, "2" ) // Manual
 INPUT_PORTS_END
@@ -3199,7 +3310,7 @@ static INPUT_PORTS_START( einvader )
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_BUTTON1 )
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_JOYSTICK_LEFT ) PORT_16WAY
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT ) PORT_16WAY
-	PORT_CONFNAME( 0x08, 0x00, "Skill Level" ) PORT_CHANGED_MEMBER(DEVICE_SELF, einvader_state, skill_switch, nullptr)
+	PORT_CONFNAME( 0x08, 0x00, DEF_STR( Difficulty ) ) PORT_CHANGED_MEMBER(DEVICE_SELF, einvader_state, skill_switch, nullptr)
 	PORT_CONFSETTING(    0x00, "Amateur" )
 	PORT_CONFSETTING(    0x08, "Professional" )
 INPUT_PORTS_END
@@ -3333,10 +3444,10 @@ static INPUT_PORTS_START( efootb4 )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_UNUSED )
 
 	PORT_START("IN.4") // R4
-	PORT_CONFNAME( 0x01, 0x01, "Players" )
+	PORT_CONFNAME( 0x01, 0x01, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x01, "1" ) // Auto
 	PORT_CONFSETTING(    0x00, "2" ) // Manual
-	PORT_CONFNAME( 0x02, 0x00, "Skill Level" )
+	PORT_CONFNAME( 0x02, 0x00, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x00, "Amateur" )
 	PORT_CONFSETTING(    0x02, "Professional" )
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_START ) PORT_NAME("Status")
@@ -3437,10 +3548,10 @@ READ8_MEMBER(ebaskb2_state::read_k)
 
 static INPUT_PORTS_START( ebaskb2 )
 	PORT_START("IN.0") // R6
-	PORT_CONFNAME( 0x01, 0x01, "Skill Level" )
+	PORT_CONFNAME( 0x01, 0x01, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x01, "Amateur" )
 	PORT_CONFSETTING(    0x00, "Professional" )
-	PORT_CONFNAME( 0x02, 0x02, "Players" )
+	PORT_CONFNAME( 0x02, 0x02, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x02, "1" ) // Auto
 	PORT_CONFSETTING(    0x00, "2" ) // Manual
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_BUTTON2 ) PORT_COCKTAIL PORT_NAME("P2 Shoot")
@@ -3574,7 +3685,7 @@ static INPUT_PORTS_START( raisedvl )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_UNUSED )
 
 	PORT_START("IN.1") // R1 (only bit 0)
-	PORT_CONFNAME( 0x31, 0x00, "Skill Level" ) PORT_CHANGED_MEMBER(DEVICE_SELF, raisedvl_state, skill_switch, nullptr)
+	PORT_CONFNAME( 0x31, 0x00, DEF_STR( Difficulty ) ) PORT_CHANGED_MEMBER(DEVICE_SELF, raisedvl_state, skill_switch, nullptr)
 	PORT_CONFSETTING(    0x00, "1" )
 	PORT_CONFSETTING(    0x10, "2" )
 	PORT_CONFSETTING(    0x11, "3" )
@@ -3707,9 +3818,9 @@ static INPUT_PORTS_START( f2pbball )
 	PORT_START("IN.0") // R4
 	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_BUTTON3 ) PORT_COCKTAIL PORT_NAME("P2 Pick Off")
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_UNUSED )
-	PORT_CONFNAME( 0x0c, 0x04, "Players" )
+	PORT_CONFNAME( 0x0c, 0x04, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x04, "1" )
-	PORT_CONFSETTING(    0x00, "Practice" )
+	PORT_CONFSETTING(    0x00, "Practice" ) // middle switch
 	PORT_CONFSETTING(    0x08, "2" )
 
 	PORT_START("IN.1") // R9
@@ -4358,11 +4469,11 @@ static INPUT_PORTS_START( elecdet )
 
 	// note: even though power buttons are on the matrix, they are not CPU-controlled
 	PORT_START("IN.4") // Vss!
-	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_PGUP) PORT_NAME("On") PORT_CHANGED_MEMBER(DEVICE_SELF, hh_tms1k_state, power_button, (void *)true)
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_POWER_ON ) PORT_CHANGED_MEMBER(DEVICE_SELF, hh_tms1k_state, power_button, (void *)true)
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_UNUSED )
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_UNUSED )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_E) PORT_NAME("End Turn")
-	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_PGDN) PORT_NAME("Off") PORT_CHANGED_MEMBER(DEVICE_SELF, hh_tms1k_state, power_button, (void *)false)
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_POWER_OFF ) PORT_CHANGED_MEMBER(DEVICE_SELF, hh_tms1k_state, power_button, (void *)false)
 INPUT_PORTS_END
 
 static const s16 elecdet_speaker_levels[4] = { 0, 0x3fff, 0x3fff, 0x7fff };
@@ -5456,7 +5567,7 @@ WRITE16_MEMBER(bshipb_state::write_o)
 	m_sn->vco_w(data >> 4 & 1);
 
 	// O5: R11 27K to SN76477 pin 23
-	m_sn->one_shot_cap_w((data & 0x20) ? RES_K(27) : RES_INF);
+	m_sn->one_shot_cap_w((data & 0x20) ? RES_K(27) : 0);
 
 	// O6: SN76477 pin 25
 	m_sn->mixer_b_w(data >> 6 & 1);
@@ -5512,16 +5623,17 @@ MACHINE_CONFIG_END
 
 /***************************************************************************
 
-  Milton Bradley Simon, created by Ralph Baer
-
-  Revision A hardware:
-  * TMS1000 (die label MP3226)
+  Milton Bradley Simon (model 4850), created by Ralph Baer
+  * TMS1000 (die label MP3226), or MP3300 (die label 1000C, MP3300)
   * DS75494 Hex digit LED driver, 4 big lamps, 1-bit sound
 
-  Newer revisions (also Pocket Simon) have a smaller 16-pin MB4850 chip
-  instead of the TMS1000. This one has been decapped too, but we couldn't
-  find an internal ROM. It is possibly a cost-reduced custom ASIC specifically
-  for Simon. The semi-sequel Super Simon uses a TMS1100 (see next minidriver).
+  known revisions:
+  - 1978: Rev A: TMS1000(no label)
+  - 198?: Rev B: MB4850 SCUS0640(16-pin custom ASIC), PCB label REV.B,
+    cost-reduced, same hardware as Pocket Simon
+  - 1979: Rev F: TMS1000(MP3300), PCB label 4850 Rev F
+
+  The semi-sequel Super Simon uses a TMS1100 (see next minidriver).
 
 ***************************************************************************/
 
@@ -5586,7 +5698,7 @@ static INPUT_PORTS_START( simon )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_UNUSED )
 
 	PORT_START("IN.3") // R9
-	PORT_CONFNAME( 0x0f, 0x02, "Skill Level")
+	PORT_CONFNAME( 0x0f, 0x02, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x02, "1" )
 	PORT_CONFSETTING(    0x04, "2" )
 	PORT_CONFSETTING(    0x08, "3" )
@@ -5695,7 +5807,7 @@ static INPUT_PORTS_START( ssimon )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON1 ) PORT_NAME("P1 Red Button")
 
 	PORT_START("IN.4") // R9
-	PORT_CONFNAME( 0x0f, 0x02, "Skill Level")
+	PORT_CONFNAME( 0x0f, 0x02, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x00, "Head-to-Head" ) // this sets R10 K2, see below
 	PORT_CONFSETTING(    0x02, "1" )
 	PORT_CONFSETTING(    0x04, "2" )
@@ -6550,11 +6662,11 @@ static INPUT_PORTS_START( stopthief )
 
 	// note: even though power buttons are on the matrix, they are not CPU-controlled
 	PORT_START("IN.2") // Vss!
-	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_PGUP) PORT_NAME("On") PORT_CHANGED_MEMBER(DEVICE_SELF, hh_tms1k_state, power_button, (void *)true)
+	PORT_BIT( 0x01, IP_ACTIVE_HIGH, IPT_POWER_ON ) PORT_CHANGED_MEMBER(DEVICE_SELF, hh_tms1k_state, power_button, (void *)true)
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_T) PORT_NAME("Tip")
 	PORT_BIT( 0x04, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_A) PORT_NAME("Arrest")
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_C) PORT_NAME("Clue")
-	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_KEYPAD ) PORT_CODE(KEYCODE_PGDN) PORT_NAME("Off") PORT_CHANGED_MEMBER(DEVICE_SELF, hh_tms1k_state, power_button, (void *)false)
+	PORT_BIT( 0x10, IP_ACTIVE_HIGH, IPT_POWER_OFF ) PORT_CHANGED_MEMBER(DEVICE_SELF, hh_tms1k_state, power_button, (void *)false)
 INPUT_PORTS_END
 
 static const s16 stopthief_speaker_levels[7] = { 0, 0x7fff/6, 0x7fff/5, 0x7fff/4, 0x7fff/3, 0x7fff/2, 0x7fff };
@@ -7002,7 +7114,7 @@ static INPUT_PORTS_START( tcfball )
 
 	PORT_START("IN.2") // R7
 	PORT_BIT( 0x07, IP_ACTIVE_HIGH, IPT_UNUSED )
-	PORT_CONFNAME( 0x08, 0x00, "Skill Level" )
+	PORT_CONFNAME( 0x08, 0x00, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x00, "1" ) // college
 	PORT_CONFSETTING(    0x08, "2" ) // professional
 INPUT_PORTS_END
@@ -7576,7 +7688,7 @@ static INPUT_PORTS_START( copycat )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_BUTTON1 ) PORT_NAME("Yellow Button")
 
 	PORT_START("IN.1") // R5
-	PORT_CONFNAME( 0x0f, 0x01, "Skill Level")
+	PORT_CONFNAME( 0x0f, 0x01, DEF_STR( Difficulty ) )
 	PORT_CONFSETTING(    0x01, "1" )
 	PORT_CONFSETTING(    0x02, "2" )
 	PORT_CONFSETTING(    0x04, "3" )
@@ -7853,7 +7965,7 @@ static INPUT_PORTS_START( ss7in1 )
 	PORT_BIT( 0x08, IP_ACTIVE_HIGH, IPT_JOYSTICK_RIGHT )
 
 	PORT_START("IN.3") // R10
-	PORT_CONFNAME( 0x01, 0x00, "Players" )
+	PORT_CONFNAME( 0x01, 0x00, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x00, "1" )
 	PORT_CONFSETTING(    0x01, "2" )
 	PORT_BIT( 0x02, IP_ACTIVE_HIGH, IPT_UNUSED )
@@ -7952,10 +8064,6 @@ void tbreakup_state::prepare_display()
 		m_display_state[y] = (m_r >> y & 1) ? (m_o & 0x7f) : 0;
 	}
 
-	// 22 round leds from O2-O7 and expander port 7
-	for (int y = 2; y < 8; y++)
-		m_display_state[y] = (m_o >> y & 1) ? m_exp_port[6] : 0;
-
 	// 24 rectangular leds from expander ports 1-6 (not strobed)
 	for (int y = 0; y < 6; y++)
 		m_display_state[y+8] = m_exp_port[y];
@@ -7993,6 +8101,10 @@ WRITE16_MEMBER(tbreakup_state::write_o)
 	// O0-O3: TMS1025 port H
 	m_expander->write_h(space, 0, data & 0xf);
 
+	// 22 round leds from O2-O7 and expander port 7 (update here)
+	for (int y = 2; y < 8; y++)
+		m_display_state[y] = (data >> y & 1) ? m_exp_port[6] : 0;
+
 	// O0-O7: led state
 	m_o = data;
 	prepare_display();
@@ -8021,7 +8133,7 @@ static INPUT_PORTS_START( tbreakup )
 	PORT_CONFSETTING(    0x04, "5" )
 
 	PORT_START("IN.3") // fake
-	PORT_CONFNAME( 0x01, 0x00, "Skill Level" ) PORT_CHANGED_MEMBER(DEVICE_SELF, tbreakup_state, skill_switch, nullptr)
+	PORT_CONFNAME( 0x01, 0x00, DEF_STR( Difficulty ) ) PORT_CHANGED_MEMBER(DEVICE_SELF, tbreakup_state, skill_switch, nullptr)
 	PORT_CONFSETTING(    0x00, "Pro 1" )
 	PORT_CONFSETTING(    0x01, "Pro 2" )
 INPUT_PORTS_END
@@ -8041,6 +8153,7 @@ void tbreakup_state::machine_reset()
 {
 	hh_tms1k_state::machine_reset();
 	set_clock();
+	m_expander->write_ms(1); // Vss
 }
 
 void tbreakup_state::machine_start()
@@ -8283,10 +8396,10 @@ static INPUT_PORTS_START( ssports4 )
 
 	PORT_START("IN.2") // R5
 	PORT_BIT( 0x03, IP_ACTIVE_HIGH, IPT_UNUSED )
-	PORT_CONFNAME( 0x04, 0x00, "Speed" )
-	PORT_CONFSETTING(    0x00, "Low" )
-	PORT_CONFSETTING(    0x04, "High" )
-	PORT_CONFNAME( 0x08, 0x08, "Players" )
+	PORT_CONFNAME( 0x04, 0x00, DEF_STR( Difficulty ) )
+	PORT_CONFSETTING(    0x00, "1" )
+	PORT_CONFSETTING(    0x04, "2" )
+	PORT_CONFNAME( 0x08, 0x08, DEF_STR( Players ) )
 	PORT_CONFSETTING(    0x08, "1" )
 	PORT_CONFSETTING(    0x00, "2" )
 
@@ -8808,6 +8921,16 @@ ROM_START( simon )
 	ROM_LOAD( "tms1000_simon_output.pla", 0, 365, CRC(2943c71b) SHA1(bd5bb55c57e7ba27e49c645937ec1d4e67506601) )
 ROM_END
 
+ROM_START( simonf )
+	ROM_REGION( 0x0400, "maincpu", 0 )
+	ROM_LOAD( "mp3300", 0x0000, 0x0400, CRC(b9fcf93a) SHA1(45960e4242a08495f2a99fc5d44728eabd93cd9f) )
+
+	ROM_REGION( 867, "maincpu:mpla", 0 )
+	ROM_LOAD( "tms1000_simon_micro.pla", 0, 867, CRC(52f7c1f1) SHA1(dbc2634dcb98eac173ad0209df487cad413d08a5) )
+	ROM_REGION( 365, "maincpu:opla", 0 ) // unused
+	ROM_LOAD( "tms1000_simon_output.pla", 0, 365, CRC(2943c71b) SHA1(bd5bb55c57e7ba27e49c645937ec1d4e67506601) )
+ROM_END
+
 
 ROM_START( ssimon )
 	ROM_REGION( 0x0800, "maincpu", 0 )
@@ -9088,7 +9211,7 @@ CONS( 1978, cqback,    0,        0, cqback,    cqback,    driver_device, 0, "Col
 CONS( 1980, h2hfootb,  0,        0, h2hfootb,  h2hfootb,  driver_device, 0, "Coleco", "Head to Head Football", MACHINE_SUPPORTS_SAVE )
 CONS( 1980, h2hbaseb,  0,        0, h2hbaseb,  h2hbaseb,  driver_device, 0, "Coleco", "Head to Head Baseball", MACHINE_SUPPORTS_SAVE )
 CONS( 1981, h2hboxing, 0,        0, h2hboxing, h2hboxing, driver_device, 0, "Coleco", "Head to Head Boxing", MACHINE_SUPPORTS_SAVE )
-CONS( 1981, quizwizc,  0,        0, quizwizc,  quizwizc,  driver_device, 0, "Coleco", "Quiz Wiz Challenger", MACHINE_SUPPORTS_SAVE | MACHINE_NOT_WORKING ) // ***
+CONS( 1981, quizwizc,  0,        0, quizwizc,  quizwizc,  driver_device, 0, "Coleco", "Quiz Wiz Challenger", MACHINE_SUPPORTS_SAVE ) // ***
 CONS( 1981, tc4,       0,        0, tc4,       tc4,       driver_device, 0, "Coleco", "Total Control 4", MACHINE_SUPPORTS_SAVE | MACHINE_REQUIRES_ARTWORK )
 
 CONS( 1979, cnbaskb,   0,        0, cnbaskb,   cnbaskb,   driver_device, 0, "Conic", "Electronic Basktetball (Conic)", MACHINE_SUPPORTS_SAVE )
@@ -9129,7 +9252,8 @@ CONS( 1980, mdndclab,  0,        0, mdndclab,  mdndclab,  driver_device, 0, "Mat
 CONS( 1977, comp4,     0,        0, comp4,     comp4,     driver_device, 0, "Milton Bradley", "Comp IV", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK | MACHINE_NO_SOUND_HW )
 CONS( 1977, bship,     0,        0, bship,     bship,     driver_device, 0, "Milton Bradley", "Electronic Battleship (1977 version, model 4750A)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK | MACHINE_NO_SOUND | MACHINE_NOT_WORKING ) // ***
 CONS( 1977, bshipb,    bship,    0, bshipb,    bship,     driver_device, 0, "Milton Bradley", "Electronic Battleship (1977 version, model 4750B)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK | MACHINE_IMPERFECT_SOUND | MACHINE_NOT_WORKING ) // ***
-CONS( 1978, simon,     0,        0, simon,     simon,     driver_device, 0, "Milton Bradley", "Simon (Rev. A)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+CONS( 1978, simon,     0,        0, simon,     simon,     driver_device, 0, "Milton Bradley", "Simon (Rev A)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+CONS( 1979, simonf,    simon,    0, simon,     simon,     driver_device, 0, "Milton Bradley", "Simon (Rev F)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
 CONS( 1979, ssimon,    0,        0, ssimon,    ssimon,    driver_device, 0, "Milton Bradley", "Super Simon", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
 CONS( 1979, bigtrak,   0,        0, bigtrak,   bigtrak,   driver_device, 0, "Milton Bradley", "Big Trak", MACHINE_SUPPORTS_SAVE | MACHINE_MECHANICAL ) // ***
 CONS( 1981, mbdtower,  0,        0, mbdtower,  mbdtower,  driver_device, 0, "Milton Bradley", "Dark Tower (Milton Bradley)", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK | MACHINE_MECHANICAL ) // ***

@@ -100,18 +100,6 @@ void vboy_cart_slot_device::device_start()
 	m_cart = dynamic_cast<device_vboy_cart_interface *>(get_card_device());
 }
 
-//-------------------------------------------------
-//  device_config_complete - perform any
-//  operations now that the configuration is
-//  complete
-//-------------------------------------------------
-
-void vboy_cart_slot_device::device_config_complete()
-{
-	// set brief and instance name
-	update_names();
-}
-
 
 //-------------------------------------------------
 //  vboy PCB
@@ -221,7 +209,7 @@ void vboy_cart_slot_device::call_unload()
  get default card software
  -------------------------------------------------*/
 
-std::string vboy_cart_slot_device::get_default_card_software()
+std::string vboy_cart_slot_device::get_default_card_software(get_default_card_software_hook &hook) const
 {
 	return software_get_default_slot("vb_rom");
 }

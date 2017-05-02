@@ -66,7 +66,6 @@ public:
 
 	// device-level overrides
 	virtual void device_start() override;
-	virtual void device_config_complete() override;
 
 	// image-level overrides
 	virtual image_init_result call_load() override;
@@ -74,7 +73,7 @@ public:
 	virtual const software_list_loader &get_software_list_loader() const override { return rom_software_list_loader::instance(); }
 
 	int get_type() { return m_type; }
-	int get_cart_type(uint8_t *ROM, uint32_t len);
+	static int get_cart_type(const uint8_t *ROM, uint32_t len);
 
 	void internal_header_logging(uint8_t *ROM, uint32_t len);
 
@@ -90,7 +89,7 @@ public:
 	virtual const char *file_extensions() const override { return "pce,bin"; }
 
 	// slot interface overrides
-	virtual std::string get_default_card_software() override;
+	virtual std::string get_default_card_software(get_default_card_software_hook &hook) const override;
 
 	// reading and writing
 	virtual DECLARE_READ8_MEMBER(read_cart);

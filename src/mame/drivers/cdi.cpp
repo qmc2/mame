@@ -370,7 +370,7 @@ MACHINE_RESET_MEMBER( cdi_state, quizard4 )
 
 READ8_MEMBER( cdi_state::servo_io_r )
 {
-	if (space.debugger_access())
+	if (space.machine().side_effect_disabled())
 	{
 		return 0;
 	}
@@ -570,7 +570,7 @@ WRITE8_MEMBER( cdi_state::servo_io_w )
 
 READ8_MEMBER( cdi_state::slave_io_r )
 {
-	if (space.debugger_access())
+	if (space.machine().side_effect_disabled())
 	{
 		return 0;
 	}
@@ -943,7 +943,7 @@ MACHINE_CONFIG_END
 
 READ8_MEMBER( cdi_state::quizard_mcu_p1_r )
 {
-	return rand();
+	return machine().rand();
 }
 
 static ADDRESS_MAP_START( mcu_io_map, AS_IO, 8, cdi_state )

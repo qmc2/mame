@@ -27,9 +27,9 @@ const device_type H21_CART_SLOT = device_creator<h21_cart_slot_device>;
 //-------------------------------------------------
 
 device_vc4000_cart_interface::device_vc4000_cart_interface(const machine_config &mconfig, device_t &device)
-	: device_slot_card_interface(mconfig, device),
-		m_rom(nullptr),
-		m_rom_size(0)
+	: device_slot_card_interface(mconfig, device)
+	, m_rom(nullptr)
+	, m_rom_size(0)
 {
 }
 
@@ -73,11 +73,25 @@ void device_vc4000_cart_interface::ram_alloc(uint32_t size)
 //-------------------------------------------------
 //  vc4000_cart_slot_device - constructor
 //-------------------------------------------------
-vc4000_cart_slot_device::vc4000_cart_slot_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock) :
-						device_t(mconfig, VC4000_CART_SLOT, "Interton VC 4000 Cartridge Slot", tag, owner, clock, "vc4000_cart_slot", __FILE__),
-						device_image_interface(mconfig, *this),
-						device_slot_interface(mconfig, *this),
-						m_type(VC4000_STD), m_cart(nullptr)
+vc4000_cart_slot_device::vc4000_cart_slot_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+	: vc4000_cart_slot_device(mconfig, VC4000_CART_SLOT, "Interton VC 4000 Cartridge Slot", tag, owner, clock, "vc4000_cart_slot", __FILE__)
+{
+}
+
+vc4000_cart_slot_device::vc4000_cart_slot_device(
+		const machine_config &mconfig,
+		device_type type,
+		const char *name,
+		const char *tag,
+		device_t *owner,
+		uint32_t clock,
+		const char *shortname,
+		const char *source)
+	: device_t(mconfig, type, name, tag, owner, clock, shortname, source)
+	, device_image_interface(mconfig, *this)
+	, device_slot_interface(mconfig, *this)
+	, m_type(VC4000_STD)
+	, m_cart(nullptr)
 {
 }
 
@@ -100,23 +114,11 @@ void vc4000_cart_slot_device::device_start()
 }
 
 //-------------------------------------------------
-//  device_config_complete - perform any
-//  operations now that the configuration is
-//  complete
-//-------------------------------------------------
-
-void vc4000_cart_slot_device::device_config_complete()
-{
-	// set brief and instance name
-	update_names();
-}
-
-//-------------------------------------------------
 //  trq h-21 slot
 //-------------------------------------------------
 
-h21_cart_slot_device::h21_cart_slot_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock) :
-	vc4000_cart_slot_device(mconfig, tag, owner, clock)
+h21_cart_slot_device::h21_cart_slot_device(const machine_config &mconfig, const char *tag, device_t *owner, uint32_t clock)
+	: vc4000_cart_slot_device(mconfig, H21_CART_SLOT, "TRQ H-21 Cartridge Slot", tag, owner, clock, "h21_cart_slot", __FILE__)
 {
 }
 
@@ -224,12 +226,12 @@ image_init_result vc4000_cart_slot_device::call_load()
  get default card software
  -------------------------------------------------*/
 
-std::string vc4000_cart_slot_device::get_default_card_software()
+std::string vc4000_cart_slot_device::get_default_card_software(get_default_card_software_hook &hook) const
 {
-	if (open_image_file(mconfig().options()))
+	if (hook.image_file())
 	{
 		const char *slot_string;
-		uint32_t size = m_file->size();
+		uint32_t size = hook.image_file()->size();
 		int type = VC4000_STD;
 
 		// attempt to identify the non-standard types
@@ -241,7 +243,6 @@ std::string vc4000_cart_slot_device::get_default_card_software()
 		slot_string = vc4000_get_slot(type);
 
 		//printf("type: %s\n", slot_string);
-		clear();
 
 		return std::string(slot_string);
 	}

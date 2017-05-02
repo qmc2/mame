@@ -67,7 +67,6 @@ public:
 
 	// device-level overrides
 	virtual void device_start() override;
-	virtual void device_config_complete() override;
 	virtual void device_timer(emu_timer &timer, device_timer_id id, int param, void *ptr) override;
 
 	// image-level overrides
@@ -85,14 +84,15 @@ public:
 	virtual const char *file_extensions() const override { return "ccc,rom"; }
 
 	// slot interface overrides
-	virtual std::string get_default_card_software() override;
+	virtual std::string get_default_card_software(get_default_card_software_hook &hook) const override;
 
 	// reading and writing to $FF40-$FF7F
 	DECLARE_READ8_MEMBER(read);
 	DECLARE_WRITE8_MEMBER(write);
 
-	// sets a cartridge line
-	void cart_set_line(line line, line_value value);
+	// manipulation of cartridge lines
+	void set_line_value(line line, line_value value);
+	line_value get_line_value(line line) const;
 
 	// hack to support twiddling the Q line
 	void twiddle_q_lines();
@@ -156,6 +156,7 @@ public:
 
 	virtual DECLARE_READ8_MEMBER(read);
 	virtual DECLARE_WRITE8_MEMBER(write);
+	virtual void set_sound_enable(bool sound_enable);
 
 	virtual uint8_t* get_cart_base();
 	void set_cart_base_update(cococart_base_update_delegate update);

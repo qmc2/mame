@@ -154,7 +154,7 @@ hp98035_io_card::~hp98035_io_card()
 }
 
 static INPUT_PORTS_START(hp98035_port)
-	MCFG_HP9845_IO_SC(1)
+	MCFG_HP9845_IO_SC(9)
 INPUT_PORTS_END
 
 ioport_constructor hp98035_io_card::device_input_ports() const
@@ -192,7 +192,6 @@ void hp98035_io_card::device_start()
 void hp98035_io_card::device_reset()
 {
 	hp9845_io_card_device::device_reset();
-	install_readwrite_handler(read16_delegate(FUNC(hp98035_io_card::reg_r) , this) , write16_delegate(FUNC(hp98035_io_card::reg_w) , this));
 
 	m_idr_full = false;
 	m_idr = 0;

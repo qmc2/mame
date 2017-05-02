@@ -123,18 +123,6 @@ void neogeo_cart_slot_device::device_start()
 	m_cart = dynamic_cast<device_neogeo_cart_interface *>(get_card_device());
 }
 
-//-------------------------------------------------
-//  device_config_complete - perform any
-//  operations now that the configuration is
-//  complete
-//-------------------------------------------------
-
-void neogeo_cart_slot_device::device_config_complete()
-{
-	// set brief and instance name
-	update_names();
-}
-
 
 //-------------------------------------------------
 //  NEOGEO PCB
@@ -335,7 +323,7 @@ void neogeo_cart_slot_device::call_unload()
  get default card software
  -------------------------------------------------*/
 
-std::string neogeo_cart_slot_device::get_default_card_software()
+std::string neogeo_cart_slot_device::get_default_card_software(get_default_card_software_hook &hook) const
 {
 	return software_get_default_slot("rom");
 }

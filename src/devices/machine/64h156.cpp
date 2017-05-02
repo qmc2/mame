@@ -70,8 +70,7 @@ c64h156_device::c64h156_device(const machine_config &mconfig, const char *tag, d
 	m_ted(0),
 	m_yb(0),
 	m_atni(0),
-	m_atna(0),
-	m_period(attotime::from_hz(clock))
+	m_atna(0)
 {
 	memset(&cur_live, 0x00, sizeof(cur_live));
 	cur_live.tm = attotime::never;
@@ -106,6 +105,17 @@ void c64h156_device::device_start()
 	save_item(NAME(m_yb));
 	save_item(NAME(m_atni));
 	save_item(NAME(m_atna));
+}
+
+
+//-------------------------------------------------
+//  device_clock_changed - called when the
+//  device clock is altered in any way
+//-------------------------------------------------
+
+void c64h156_device::device_clock_changed()
+{
+	m_period = attotime::from_hz(clock());
 }
 
 
@@ -145,7 +155,7 @@ void c64h156_device::live_start()
 	cur_live.soe = m_soe;
 	cur_live.accl = m_accl;
 	cur_live.zero_counter = 0;
-	cur_live.cycles_until_random_flux = (rand() % 31) + 289;
+	cur_live.cycles_until_random_flux = (machine().rand() % 31) + 289;
 
 	checkpoint_live = cur_live;
 
@@ -392,7 +402,7 @@ int c64h156_device::get_next_bit(attotime &tm, const attotime &limit)
 			bit = 1;
 
 			cur_live.zero_counter = 0;
-			cur_live.cycles_until_random_flux = (rand() % 31) + 289;
+			cur_live.cycles_until_random_flux = (machine().rand() % 31) + 289;
 
 			get_next_edge(next);
 		}
@@ -400,7 +410,7 @@ int c64h156_device::get_next_bit(attotime &tm, const attotime &limit)
 
 	if (cur_live.zero_counter >= cur_live.cycles_until_random_flux) {
 		cur_live.zero_counter = 0;
-		cur_live.cycles_until_random_flux = (rand() % 367) + 33;
+		cur_live.cycles_until_random_flux = (machine().rand() % 367) + 33;
 
 		bit = 1;
 	}

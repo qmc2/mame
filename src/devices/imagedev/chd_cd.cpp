@@ -55,9 +55,6 @@ void cdrom_image_device::device_config_complete()
 	m_extension_list = "chd,cue,toc,nrg,gdi,iso,cdr";
 
 	add_format("chdcd", "CD-ROM drive", m_extension_list, "");
-
-	// set brief and instance name
-	update_names();
 }
 
 //-------------------------------------------------
@@ -110,7 +107,7 @@ image_init_result cdrom_image_device::call_load()
 	if (chd) {
 		m_cdrom_handle = cdrom_open( chd );
 	} else {
-		m_cdrom_handle = cdrom_open(m_image_name.c_str());
+		m_cdrom_handle = cdrom_open(filename());
 	}
 	if ( ! m_cdrom_handle )
 		goto error;

@@ -36,7 +36,7 @@ namespace netlist
 
 #if TEST_PARALLEL
 #define MAXTHR 10
-static const int num_thr = 3;
+static constexpr int num_thr = 3;
 
 struct thr_intf
 {
@@ -127,7 +127,7 @@ public:
 	matrix_solver_direct_t(netlist_t &anetlist, const pstring &name, const solver_parameters_t *params, const std::size_t size);
 	matrix_solver_direct_t(netlist_t &anetlist, const pstring &name, const eSortType sort, const solver_parameters_t *params, const std::size_t size);
 
-	virtual ~matrix_solver_direct_t();
+	virtual ~matrix_solver_direct_t() override;
 
 	virtual void vsetup(analog_net_t::list_t &nets) override;
 	virtual void reset() override { matrix_solver_t::reset(); }
@@ -165,7 +165,7 @@ protected:
 
 private:
 	//static const std::size_t m_pitch = (((storage_N + 1) + 0) / 1) * 1;
-	static const std::size_t m_pitch = (((storage_N + 1) + 7) / 8) * 8;
+	static constexpr std::size_t m_pitch = (((storage_N + 1) + 7) / 8) * 8;
 	//static const std::size_t m_pitch = (((storage_N + 1) + 15) / 16) * 16;
 	//static const std::size_t m_pitch = (((storage_N + 1) + 31) / 32) * 32;
 #if (NL_USE_DYNAMIC_ALLOCATION)

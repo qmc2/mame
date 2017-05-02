@@ -113,7 +113,7 @@ enum
 	/* Misc: these are needed to convert mappers to boards, I will sort them later */
 	OPENCORP_DAOU306, HES_BOARD, SVISION16_BOARD, RUMBLESTATION_BOARD, JYCOMPANY_A, JYCOMPANY_B, JYCOMPANY_C,
 	MAGICSERIES_MD, KASING_BOARD, FUTUREMEDIA_BOARD, FUKUTAKE_BOARD, SOMARI_SL12,
-	HENGG_SRICH, HENGG_XHZS, HENGG_SHJY3, SUBOR_TYPE0, SUBOR_TYPE1,
+	HENGG_SRICH, HENGG_XHZS, HENGG_SHJY3, SUBOR_TYPE0, SUBOR_TYPE1, SUBOR_TYPE2,
 	KAISER_KS7058, KAISER_KS7032, KAISER_KS7022, KAISER_KS7017,
 	KAISER_KS7012, KAISER_KS7013B, KAISER_KS202, KAISER_KS7031,
 	KAISER_KS7016, KAISER_KS7037,
@@ -344,7 +344,6 @@ public:
 
 	// device-level overrides
 	virtual void device_start() override;
-	virtual void device_config_complete() override;
 
 	// image-level overrides
 	virtual image_init_result call_load() override;
@@ -366,10 +365,10 @@ public:
 	virtual device_image_partialhash_func get_partial_hash() const override { return &nes_partialhash; }
 
 	// slot interface overrides
-	virtual std::string get_default_card_software() override;
-	const char * get_default_card_ines(uint8_t *ROM, uint32_t len);
-	const char * get_default_card_unif(uint8_t *ROM, uint32_t len);
-	const char * nes_get_slot(int pcb_id);
+	virtual std::string get_default_card_software(get_default_card_software_hook &hook) const override;
+	const char * get_default_card_ines(get_default_card_software_hook &hook, const uint8_t *ROM, uint32_t len) const;
+	static const char * get_default_card_unif(const uint8_t *ROM, uint32_t len);
+	static const char * nes_get_slot(int pcb_id);
 	int nes_get_pcb_id(const char *slot);
 
 	// reading and writing

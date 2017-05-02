@@ -62,7 +62,7 @@ public:
 
 	matrix_solver_w_t(netlist_t &anetlist, const pstring &name, const solver_parameters_t *params, const std::size_t size);
 
-	virtual ~matrix_solver_w_t();
+	virtual ~matrix_solver_w_t() override;
 
 	virtual void vsetup(analog_net_t::list_t &nets) override;
 	virtual void reset() override { matrix_solver_t::reset(); }
@@ -97,7 +97,7 @@ protected:
 	nl_double m_last_RHS[storage_N]; // right hand side - contains currents
 
 private:
-	static const std::size_t m_pitch  = (((  storage_N) + 7) / 8) * 8;
+	static constexpr std::size_t m_pitch  = (((  storage_N) + 7) / 8) * 8;
 	nl_ext_double m_A[storage_N][m_pitch];
 	nl_ext_double m_Ainv[storage_N][m_pitch];
 	nl_ext_double m_W[storage_N][m_pitch];
